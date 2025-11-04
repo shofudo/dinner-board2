@@ -127,3 +127,77 @@
   // 初期表示
   renderBoards();
 })(); // まとまり終わり
+// ==============================
+// 本日の設定（today-settings.v1）→ 発注ボード反映
+// ==============================
+(function(){
+  function loadSettings(){
+    try{
+      const raw = localStorage.getItem('today-settings.v1');
+      if(!raw) return null;
+      const data = JSON.parse(raw);
+      if(!data || !Array.isArray(data.rooms)) return null;
+      return data;
+    }catch(e){ return null; }
+  }
+
+  function esc(s){ return String(s||"").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m])); }
+
+  function renderFromSettings(data){
+    const byTime = { "18:00":[], "18:30":[], "19:00":[] };
+    for(const r of data.rooms){
+      if(byTime[r.dinner]) byTime[r.dinner].push(r);
+    }
+
+    const dishHeaders = ["吸物","刺身","蒸物","揚物","煮物","飯","甘味"];
+
+    const groupHtml = (time, list) => {
+      return `
+        <h2 style="margin:24px 0 8px 0;">${time} グループ</h2>
+        <div class="table like">
+          <div class="row-head" style="display:grid;grid-template-columns:220px repeat(7,1fr);gap:8px;padding:8px;border-bottom:1px solid #eee;font-size:12px;color:#666;">
+            <div>部屋 / 速度・アレルギー</div>
+            ${dishHeaders.map(h=>`<div>${h}</div>`).join("")}
+          </div>
+          ${list.map(r=>{
+            // 部屋名の右に [人数] [プラン] [アレルギー] の小タグ
+            const tags = [
+              r.guest ? `<span class="tag">${r.guest}名</span>` : "",
+              r.plan ? `<span class="tag">${esc(r.plan)}</span>` : "",
+              r.allergy ? `<span class="tag warn">アレルギー: ${esc(r.allergy)}</span>` : ""
+            ].join("");
+
+            // 甘味のセルに ケーキ/プレート の小タグ
+            const sweetTag = (r.cake || r.plate)
+              ? `<div><span class="tag note">${[r.cake?"ケーキ":null, r.plate?"プレート":null].filter(Boolean).join("・")}</span></div>`
+              : `<div class="muted">未</div>`;
+
+            return `
+              <div class="room-row" style="display:grid;grid-template-columns:220px repeat(7,1fr);gap:8px;align-items:center;padding:10px;border-bottom:1px dashed #eee;">
+                <div><strong>${esc(r.name)}</strong>${tags}</div>
+                ${dishHeaders.slice(0,6).map(()=>`<div style="text-align:center;"><div class="dotbtn"></div><div class="muted">未</div></div>`).join("")}
+                <div style="text-align:center;">${sweetTag}</div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      `;
+    };
+
+    const html =
+      groupHtml("18:00", byTime["18:00"]) +
+      groupHtml("18:30", byTime["18:30"]) +
+      groupHtml("19:00", byTime["19:00"]);
+
+    const root = document.getElementById('boards');
+    if(root && html.trim()){
+      root.innerHTML = html;
+    }
+  }
+
+  // 初期実行（index.html を開いた時だけ効く）
+  document.addEventListener('DOMContentLoaded', () => {
+    const data = loadSettings();
+    if(data) renderFromSettings(data);
+  });
+})();

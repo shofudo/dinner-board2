@@ -42,3 +42,11 @@ button { cursor: pointer; }
   overflow-wrap: anywhere;
 }
 .cell { gap: 4px; }   /* 文字と丸の間を少し広げる */
+/* 小タグ（人数/プラン/アレルギー/デザート） */
+.tag {
+  display:inline-block; font-size:12px; line-height:1;
+  padding:2px 6px; border:1px solid #d8d8d8; border-radius:999px;
+  background:#f6f7fb; margin-left:6px; white-space:nowrap;
+}
+.tag.warn { background:#fff2f2; border-color:#f0b5b5; }   /* アレルギー用 */
+.tag.note { background:#f7fff2; border-color:#cfe7b5; }   /* 甘味タグ用 */
