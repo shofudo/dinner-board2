@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>夕食進行ボード（ミニ）</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- タブ -->
+    <nav class="tabs">
+      <button id="tab-input" aria-selected="true">オーダー入力</button>
+      <button id="tab-kitchen">キッチン表示</button>
+    </nav>
+
+    <!-- 入力画面：ここに進行ボードを出す -->
+    <section id="view-input" class="view is-active">
+      <h1>夕食進行ボード</h1>
+
+      <!-- ここが見えている（見出しのすぐ下） -->
+      <div id="boards"><!-- JSで18:00/18:30/19:00を描画 --></div>
+      <div class="row">
+        <button id="resetToday">本日データを初期化</button>
+      </div>
+      <!-- ここまで -->
+
+    </section>
+
+    <!-- キッチン側（今日は表示だけ） -->
+    <section id="view-kitchen" class="view">
+      <h1>キッチン表示</h1>
+      <p>※まずは入力画面の進行ボードを完成させます。</p>
+    </section>
+
+    <script src="app.js"></script>
+  </body>
+</html>
