@@ -58,7 +58,10 @@
       <div class="room-row">
         <div><input type="checkbox" id="use-custom"></div>
         <div><input type="text" id="custom-room-name" placeholder="カスタム部屋名"></div>
-        <div><input type="number" min="0" id="custom-guest" placeholder="人数"></div>
+<select id="custom-guest">
+  <option value="">人数</option>
+  ${Array.from({length:12}, (_,i)=>`<option>${i+1}</option>`).join("")}
+</select>
         <div>
           <select id="custom-plan">
             <option value="">未選択</option>
@@ -116,7 +119,10 @@
       row.innerHTML = `
         <div><input type="checkbox" id="use-${idx}"></div>
         <div class="room-name">${name}</div>
-        <div><input type="number" min="0" id="guest-${idx}" placeholder="人数"></div>
+<select id="guest-${idx}">
+  <option value="">人数</option>
+  ${Array.from({length:12}, (_,i)=>`<option>${i+1}</option>`).join("")}
+</select>
         <div>
           <select id="plan-${idx}">
             <option value="">未選択</option>
