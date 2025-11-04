@@ -200,105 +200,107 @@
     }catch(e){ return null; }
   }
 
-  function esc(s){ return String(s||"").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m])); }
-function renderFromSettings(data){
-  const byTime = { "18:00":[], "18:30":[], "19:00":[] };
-  for (const r of data.rooms){
-    if (byTime[r.dinner]) byTime[r.dinner].push(r);
+  function esc(s){
+    return String(s||"").replace(/[&<>"']/g, m=>({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    }[m]));
   }
 
-  const dishHeaders = ["吸物","刺身","蒸物","揚物","煮物","飯","甘味"];
+  function renderFromSettings(data){
+    const byTime = { "18:00":[], "18:30":[], "19:00":[] };
+    for(const r of data.rooms){
+      if(byTime[r.dinner]) byTime[r.dinner].push(r);
+    }
 
-  const groupHtml = (time, list) => {
-    return `
-      <h2 style="margin:24px 0 8px 0;">${time} グループ</h2>
-      <div class="table like">
-        <div class="row-head" style="display:grid;grid-template-columns:220px repeat(7,1fr);gap:8px;padding:8px;border-bottom:1px solid #eee;font-size:12px;color:#666;">
-          <div>部屋 / 速度・アレルギー</div>
-          ${dishHeaders.map(h=>`<div>${h}</div>`).join("")}
+    const dishHeaders = ["吸物","刺身","蒸物","揚物","煮物","飯","甘味"];
+
+    const groupHtml = (time, list) => {
+      return `
+        <h2 style="margin:24px 0 8px 0;">${time} グループ</h2>
+        <div class="table like">
+          <div class="row-head" style="display:grid;grid-template-columns:220px repeat(7,1fr);gap:8px;padding:8px;border-bottom:1px solid #eee;font-size:12px;color:#666;">
+            <div>部屋 / 速度・アレルギー</div>
+            ${dishHeaders.map(h=>`<div>${h}</div>`).join("")}
+          </div>
+          ${list.map(r=>{
+            const tags = [
+              r.guest ? `<span class="tag">${r.guest}名</span>` : "",
+              r.plan ? `<span class="tag">${esc(r.plan)}</span>` : "",
+              r.allergy ? `<span class="tag warn">アレルギー: ${esc(r.allergy)}</span>` : ""
+            ].join("");
+
+            const sweetTag = (r.cake || r.plate)
+              ? `<div><span class="tag note">${[r.cake?"ケーキ":null, r.plate?"プレート":null].filter(Boolean).join("・")}</span></div>`
+              : `<div class="muted">未</div>`;
+
+            return `
+              <div class="room-row" style="display:grid;grid-template-columns:220px repeat(7,1fr);gap:8px;align-items:center;padding:10px;border-bottom:1px dashed #eee;">
+                <div><strong>${esc(r.name)}</strong>${tags}</div>
+                ${dishHeaders.slice(0,6).map(()=>`
+                  <div style="text-align:center;">
+                    <div class="dotbtn"></div>
+                    <div class="dotlabel muted">未</div>
+                  </div>
+                `).join("")}
+                <div style="text-align:center;">${sweetTag}</div>
+              </div>
+            `;
+          }).join("")}
         </div>
-        ${list.map(r=>{
-          const tags = [
-            r.guest ? `<span class="tag">${r.guest}名</span>` : "",
-            r.plan ? `<span class="tag">${(r.plan)}</span>` : "",
-            r.allergy ? `<span class="tag warn">アレルギー: ${(r.allergy)}</span>` : ""
-          ].join("");
+      `;
+    };
 
-          const sweetTag = (r.cake || r.plate)
-            ? `<div><span class="tag note">${[r.cake?"ケーキ":null, r.plate?"プレート":null].filter(Boolean).join("・")}</span></div>`
-            : `<div class="muted">未</div>`;
+    const html =
+      groupHtml("18:00", byTime["18:00"]) +
+      groupHtml("18:30", byTime["18:30"]) +
+      groupHtml("19:00", byTime["19:00"]);
 
-          return `
-            <div class="room-row" style="display:grid;grid-template-columns:220px repeat(7,1fr);gap:8px;align-items:center;padding:10px;border-bottom:1px dashed #eee;">
-              <div><strong>${(r.name)}</strong>${tags}</div>
-              ${dishHeaders.slice(0,6).map(()=>`
-                <div style="text-align:center;">
-                  <div class="dotbtn"></div>
-                  <div class="dotlabel muted">未</div>
-                </div>
-              `).join("")}
-              <div style="text-align:center;">${sweetTag}</div>
-            </div>
-          `;
-        }).join("")}
-      </div>
-    `;
-  };
+    const root = document.getElementById('boards');
+    if(root && html.trim()){
+      root.innerHTML = html;
 
-  const html =
-    groupHtml("18:00", byTime["18:00"]) +
-    groupHtml("18:30", byTime["18:30"]) +
-    groupHtml("19:00", byTime["19:00"]);
+      // ▼▼▼ クリック状態の保存と復元 ▼▼▼
+      const dateKey = data.date || new Date().toISOString().slice(0,10);
+      const STATE_KEY = `board-state.v1:${dateKey}`;
 
-  const root = document.getElementById('boards');
-  if (root && html.trim()){
-    root.innerHTML = html;
+      function loadBoardState(){
+        try{ return JSON.parse(localStorage.getItem(STATE_KEY)) || {}; }
+        catch{ return {}; }
+      }
+      function saveBoardState(state){
+        localStorage.setItem(STATE_KEY, JSON.stringify(state));
+      }
 
-    // ▼▼▼ クリック状態の保存と復元 ▼▼▼
-    const dateKey = data.date || new Date().toISOString().slice(0,10);
-    const STATE_KEY = `board-state.v1:${dateKey}`;
+      const state = loadBoardState();
 
-    function loadBoardState(){
-      try{ return JSON.parse(localStorage.getItem(STATE_KEY)) || {}; }
-      catch{ return {}; }
-    }
-    function saveBoardState(state){
-      localStorage.setItem(STATE_KEY, JSON.stringify(state));
-    }
+      root.querySelectorAll('.room-row').forEach(row=>{
+        const room = row.querySelector('strong')?.textContent?.trim() || '';
+        const btns = row.querySelectorAll('.dotbtn');
 
-    const state = loadBoardState();
+        btns.forEach((btn, idx)=>{
+          const label = btn.parentElement.querySelector('.dotlabel');
+          const key = `${room}:${idx}`;
 
-    // 行ごとにボタンへイベント付与＆保存済み状態の復元
-    root.querySelectorAll('.room-row').forEach(row=>{
-      const room = row.querySelector('strong')?.textContent?.trim() || '';
-      const btns = row.querySelectorAll('.dotbtn');
-
-      btns.forEach((btn, idx)=>{
-        const label = btn.parentElement.querySelector('.dotlabel');
-        const key = `${room}:${idx}`;
-
-        // 復元
-        if(state[key]){
-          btn.classList.add('is-on');
-          if(label){ label.textContent = '出'; label.classList.remove('muted'); }
-        }
-
-        // クリックで保存
-        btn.addEventListener('click', ()=>{
-          const on = btn.classList.toggle('is-on');
-          if(label){
-            label.textContent = on ? '出' : '未';
-            label.classList.toggle('muted', !on);
+          // 復元
+          if(state[key]){
+            btn.classList.add('is-on');
+            if(label){ label.textContent = '出'; label.classList.remove('muted'); }
           }
-          state[key] = on ? 1 : 0;
-          saveBoardState(state);
+
+          // トグル＆保存
+          btn.addEventListener('click', ()=>{
+            const on = btn.classList.toggle('is-on');
+            if(label){
+              label.textContent = on ? '出' : '未';
+              label.classList.toggle('muted', !on);
+            }
+            state[key] = on ? 1 : 0;
+            saveBoardState(state);
+          });
         });
       });
-    });
-    // ▲▲▲ ここまで
-  }
-}
-
+      // ▲▲▲ ここまで
+    }
   }
 
   // 初期実行（index.html を開いた時だけ効く）
