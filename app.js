@@ -120,6 +120,8 @@
   document.getElementById("resetToday").addEventListener("click", ()=>{
     if(confirm("本日の進行データを消去します。よろしいですか？")){
       localStorage.removeItem(KEY_BOARD);
+      localStorage.removeItem(`board-state.v1:${new Date().toISOString().slice(0,10)}`);
+
       renderBoards();
     }
   });
@@ -232,11 +234,13 @@
             return `
               <div class="room-row" style="display:grid;grid-template-columns:220px repeat(7,1fr);gap:8px;align-items:center;padding:10px;border-bottom:1px dashed #eee;">
                 <div><strong>${esc(r.name)}</strong>${tags}</div>
-                ${dishHeaders.slice(0,6).map(()=>`<div style="text-align:center;"><div class="dotbtn"></div><div class="muted">未</div></div>`).join("")}
-                <div style="text-align:center;">${sweetTag}</div>
-              </div>
-            `;
-          }).join("")}
+               ${dishHeaders.slice(0,6).map(()=>`
+  <div style="text-align:center;">
+    <div class="dotbtn"></div>
+    <div class="dotlabel muted">未</div>
+  </div>
+`).join("")}
+
         </div>
       `;
     };
@@ -249,6 +253,47 @@
     const root = document.getElementById('boards');
     if(root && html.trim()){
       root.innerHTML = html;
+            // ▼▼▼ ここから追加：クリック状態の保存と復元 ▼▼▼
+      const dateKey = data.date || new Date().toISOString().slice(0,10);
+      const STATE_KEY = `board-state.v1:${dateKey}`;
+
+      function loadBoardState(){
+        try{
+          return JSON.parse(localStorage.getItem(STATE_KEY)) || {};
+        }catch{ return {}; }
+      }
+      function saveBoardState(state){
+        localStorage.setItem(STATE_KEY, JSON.stringify(state));
+      }
+
+      const state = loadBoardState();
+
+      // 行ごとにボタンへイベント付与＆保存済み状態の復元
+      root.querySelectorAll('.room-row').forEach(row=>{
+        const room = row.querySelector('strong')?.textContent?.trim() || '';
+        const btns = row.querySelectorAll('.dotbtn');
+
+        btns.forEach((btn, idx)=>{
+          const label = btn.parentElement.querySelector('.dotlabel');
+          const key = `${room}:${idx}`;
+
+          // 既存保存の復元
+          if(state[key]){
+            btn.classList.add('is-on');
+            if(label){ label.textContent = '出'; label.classList.remove('muted'); }
+          }
+
+          // クリックでトグル＆保存
+          btn.addEventListener('click', ()=>{
+            const on = btn.classList.toggle('is-on');
+            if(label){ label.textContent = on ? '出' : '未'; label.classList.toggle('muted', !on); }
+            state[key] = on ? 1 : 0;
+            saveBoardState(state);
+          });
+        });
+      });
+      // ▲▲▲ ここまで追加 ▲▲▲
+
     }
   }
 
