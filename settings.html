@@ -93,7 +93,56 @@
 
 
 
-      <!-- カスタム行 -->
+      <!--<!-- カスタム行 -->
+<div class="room-row">
+  <div><input type="checkbox" id="use-custom"></div>
+  <div><input type="text" id="custom-room-name" placeholder="カスタム部屋名"></div>
+
+  <!-- 人数（2〜6＋カスタマイズ） -->
+  <div class="guest-wrap" style="display:inline-flex; gap:6px; align-items:center;">
+    <select id="custom-guest"
+            onchange="document.getElementById('custom-guestNum').style.display = (this.value==='custom') ? 'inline-block' : 'none'">
+      <option value="" selected>人数</option>
+      <option>2</option><option>3</option><option>4</option><option>5</option><option>6</option>
+      <option value="custom">カスタマイズ</option>
+    </select>
+    <input type="number"
+           id="custom-guestNum"
+           min="1" max="12"
+           placeholder="人数を入力"
+           style="width:72px; display:none; margin-left:6px;" />
+  </div>
+
+  <div>
+    <select id="custom-plan">
+      <option value="">未選択</option>
+      <option>スタンダード</option>
+      <option>和牛懐石</option>
+      <option>ステーキ</option>
+      <option>しゃぶしゃぶ</option>
+      <option>連泊</option>
+    </select>
+  </div>
+  <div>
+    <select id="custom-dinner">
+      <option value="">未選択</option>
+      <option>18:00</option>
+      <option>18:30</option>
+      <option>19:00</option>
+    </select>
+  </div>
+  <div>
+    <label style="display:inline-flex;gap:6px;align-items:center;margin-right:8px;">
+      <input type="checkbox" id="custom-cake">ケーキ
+    </label>
+    <label style="display:inline-flex;gap:6px;align-items:center;margin-right:8px;">
+      <input type="checkbox" id="custom-plate">プレート
+    </label>
+    <input type="text" id="custom-allergy" placeholder="アレルギー（例：甲殻類）" style="margin-top:8px;width:100%">
+  </div>
+</div>
+
+ カスタム行 -->
       <div class="room-row">
         <div><input type="checkbox" id="use-custom"></div>
         <div><input type="text" id="custom-room-name" placeholder="カスタム部屋名"></div>
@@ -278,15 +327,28 @@ const PLANS = ["スタンダード","和牛懐石","ステーキ","しゃぶし�
         const plate = document.getElementById('custom-plate');
         if(cake) cake.checked = !!customOnly.cake;
         if(plate) plate.checked = !!customOnly.plate;
-        setValueIfExists(document.getElementById('custom-allergy'), customOnly.allergy ?? '');
-      }
-    }
+    setValueIfExists(document.getElementById('custom-guest'), customOnly.guest ?? '');
 
-    // ページ表示時に自動で反映（行を描画し終わってから実行）
-    (function initLoad(){
-      const saved = loadSaved();
-      if(saved) applyToForm(saved);
-    })();
+// もし人数が 2〜6 ならセレクトに入れる。1 以上で 2〜6 以外ならカスタム表示＆数値欄も表示
+(() => {
+  const g = Number(customOnly.guest || 0);
+  const gSel = document.getElementById('custom-guest');
+  const gInp = document.getElementById('custom-guestNum');
+  if (!gSel || !gInp) return;
+
+  if (g >= 2 && g <= 6) {
+    gSel.value = String(g);
+    gInp.style.display = 'none';
+  } else if (g >= 1) {
+    gSel.value = 'custom';
+    gInp.value = String(g);
+    gInp.style.display = 'inline-block';
+  } else {
+    gSel.value = '';
+    gInp.style.display = 'none';
+  }
+})();
+
     // ▲▲▲ ここまで追加 ▲▲▲
 
    // ▼ 保存ボタンと「発注ボードへ」を有効化
@@ -311,20 +373,26 @@ const guest = (gSel.value === 'custom')
     if (enabled) items.push({ name, guest, plan, dinner, cake, plate, allergy });
   });
   // カスタム
-  if (document.getElementById('use-custom')?.checked){
-    const name = document.getElementById('custom-room-name').value.trim();
-    if (name){
-      items.push({
-        name,
-        guest: Number(document.getElementById('custom-guest').value || 0),
-        plan: document.getElementById('custom-plan').value || "",
-        dinner: document.getElementById('custom-dinner').value || "",
-        cake: document.getElementById('custom-cake').checked,
-        plate: document.getElementById('custom-plate').checked,
-        allergy: document.getElementById('custom-allergy').value || ""
-      });
-    }
+if (document.getElementById('use-custom')?.checked){
+  const name = document.getElementById('custom-room-name').value.trim();
+  if (name){
+    const cgSel = document.getElementById('custom-guest');
+    const cGuest = (cgSel.value === 'custom')
+      ? Number(document.getElementById('custom-guestNum').value || 0)
+      : Number(cgSel.value || 0);
+
+    items.push({
+      name,
+      guest: cGuest,
+      plan: document.getElementById('custom-plan').value || "",
+      dinner: document.getElementById('custom-dinner').value || "",
+      cake: document.getElementById('custom-cake').checked,
+      plate: document.getElementById('custom-plate').checked,
+      allergy: document.getElementById('custom-allergy').value || ""
+    });
   }
+}
+
   return items;
 }
 
