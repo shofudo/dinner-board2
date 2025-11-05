@@ -181,228 +181,122 @@
     </section>
   </main>
 
-  <script>
-// 固定の10部屋
-const ROOMS = ["やまぶき","なでしこ","つばき","やしお","さくら",
-               "ふじ","さつき","きすげ","ゆり","はぎ"];
+ <script>
+document.addEventListener('DOMContentLoaded', () => {
+  // 固定の10部屋
+  const ROOMS = [
+    "やまぶき","なでしこ","つばき","やしお","さくら",
+    "ふじ","さつき","きすげ","ゆり","はぎ"
+  ];
 
-// プラン候補
-const PLANS = ["スタンダード","和牛懐石","ステーキ","しゃぶしゃぶ","連泊"];
+  // プラン候補
+  const PLANS = ["スタンダード","ステーキ","しゃぶしゃぶ"];
 
-// 夕食開始 候補
-const DINNER_TIMES = ["18:00", "18:30", "19:00"];
+  // 夕食開始 候補
+  const DINNER_TIMES = ["18:00", "18:30", "19:00"];
 
-// --- 行を描画 ---
-const wrap = document.getElementById('room-rows');
+  // --- 行を描画 ---
+  const wrap = document.getElementById('room-rows');
+  if (!wrap) {
+    console.error('room-rows が見つかりません。HTMLに <div id="room-rows"></div> があるか確認してください。');
+    return;
+  }
 
-ROOMS.forEach((name, idx) => {
-  const row = document.createElement('div');
-  row.className = 'room-row';
-  row.innerHTML = `
-    <div><input type="checkbox" id="use-${idx}"></div>
-    <div class="room-name">${name}</div>
+  ROOMS.forEach((name, idx) => {
+    const row = document.createElement('div');
+    row.className = 'room-row';
+    row.innerHTML = `
+      <div><input type="checkbox" id="use-${idx}"></div>
+      <div class="room-name">${name}</div>
+      <div><input type="number" min="0" id="guest-${idx}" placeholder="人数"></div>
+      <div>
+        <select id="plan-${idx}">
+          <option value="">未選択</option>
+          ${PLANS.map(p=>`<option>${p}</option>`).join("")}
+        </select>
+      </div>
+      <div>
+        <select id="dinner-${idx}">
+          <option value="">未選択</option>
+          ${DINNER_TIMES.map(t=>`<option>${t}</option>`).join("")}
+        </select>
+      </div>
+      <div>
+        <label style="display:inline-flex;gap:6px;align-items:center;margin-right:8px;">
+          <input type="checkbox" id="cake-${idx}">ケーキ
+        </label>
+        <label style="display:inline-flex;gap:6px;align-items:center;margin-right:8px;">
+          <input type="checkbox" id="plate-${idx}">プレート
+        </label>
+        <input type="text" id="allergy-${idx}" placeholder="アレルギー（任意）" style="margin-top:8px;width:100%">
+      </div>
+    `;
+    wrap.appendChild(row);
+  });
 
-    <!-- 人数（2〜6＋カスタマイズ） -->
-    <div class="guest-wrap" style="display:inline-flex; gap:6px; align-items:center;">
-      <select id="guest-${idx}"
-              onchange="document.getElementById('guestCustom-${idx}').style.display = (this.value==='custom') ? 'inline-block' : 'none'">
-        <option value="" selected>人数</option>
-        <option>2</option><option>3</option><option>4</option><option>5</option><option>6</option>
-        <option value="custom">カスタマイズ</option>
-      </select>
-      <input type="number" id="guestCustom-${idx}" min="1" max="12"
-             placeholder="人数を入力" style="width:72px; display:none; margin-left:6px;">
-    </div>
+  // ▼ 保存ボタンを有効化し、押したら localStorage に保存
+  const saveBtn = document.getElementById('save-btn');
+  const toBoardBtn = document.getElementById('to-board-btn');
+  if (saveBtn) saveBtn.disabled = false;
+  if (toBoardBtn) toBoardBtn.disabled = false;
 
-    <div>
-      <select id="plan-${idx}">
-        <option value="">未選択</option>
-        ${PLANS.map(p=>`<option>${p}</option>`).join("")}
-      </select>
-    </div>
-    <div>
-      <select id="dinner-${idx}">
-        <option value="">未選択</option>
-        ${DINNER_TIMES.map(t=>`<option>${t}</option>`).join("")}
-      </select>
-    </div>
-    <div>
-      <label style="display:inline-flex;gap:6px;align-items:center;margin-right:8px;">
-        <input type="checkbox" id="cake-${idx}">ケーキ
-      </label>
-      <label style="display:inline-flex;gap:6px;align-items:center;margin-right:8px;">
-        <input type="checkbox" id="plate-${idx}">プレート
-      </label>
-      <input type="text" id="allergy-${idx}" placeholder="アレルギー（任意）" style="margin-top:8px;width:100%">
-    </div>
-  `;
-  wrap.appendChild(row);
-});
+  function collectRows(){
+    const items = [];
+    ROOMS.forEach((name, idx) => {
+      const enabled = document.getElementById(`use-${idx}`).checked;
+      const guest = Number(document.getElementById(`guest-${idx}`).value || 0);
+      const plan = document.getElementById(`plan-${idx}`).value || "";
+      const dinner = document.getElementById(`dinner-${idx}`).value || "";
+      const cake = document.getElementById(`cake-${idx}`).checked;
+      const plate = document.getElementById(`plate-${idx}`).checked;
+      const allergy = document.getElementById(`allergy-${idx}`).value || "";
+      if (enabled) {
+        items.push({ name, guest, plan, dinner, cake, plate, allergy });
+      }
+    });
 
-
-    // ▼▼▼ ここから追加：保存済みの today-settings.v1 をフォームに反映 ▼▼▼
-    function loadSaved(){
-      try{
-        const raw = localStorage.getItem('today-settings.v1');
-        if(!raw) return null;
-        const data = JSON.parse(raw);
-        if(!data || !Array.isArray(data.rooms)) return null;
-        return data;
-      }catch(e){ return null; }
-    }
-
-    // 指定の select/input に値を入れる（optionが無ければ無視）
-    function setValueIfExists(el, val){
-      if(!el) return;
-      if(el.tagName === 'SELECT'){
-        const has = Array.from(el.options).some(o=>o.value===val || o.textContent===val);
-        if(has) el.value = val;
-      }else{
-        el.value = val ?? '';
+    // カスタム
+    const useCustom = document.getElementById('use-custom');
+    if (useCustom && useCustom.checked){
+      const name = (document.getElementById('custom-room-name').value || '').trim();
+      if (name){
+        items.push({
+          name,
+          guest: Number(document.getElementById('custom-guest').value || 0),
+          plan: document.getElementById('custom-plan').value || "",
+          dinner: document.getElementById('custom-dinner').value || "",
+          cake: document.getElementById('custom-cake').checked,
+          plate: document.getElementById('custom-plate').checked,
+          allergy: document.getElementById('custom-allergy').value || ""
+        });
       }
     }
-
-    function applyToForm(data){
-      if(!data) return;
-
-      // 固定10部屋
-      data.rooms.forEach((r)=>{
-        const idx = ROOMS.indexOf(r.name);
-        if(idx >= 0){
-          // 使用チェックON
-          const use = document.getElementById(`use-${idx}`);
-          if(use) use.checked = true;
-
-          setValueIfExists(document.getElementById(`guest-${idx}`), r.guest ?? '');
-          setValueIfExists(document.getElementById(`plan-${idx}`), r.plan ?? '');
-          setValueIfExists(document.getElementById(`dinner-${idx}`), r.dinner ?? '');
-          const cake = document.getElementById(`cake-${idx}`);
-          const plate = document.getElementById(`plate-${idx}`);
-          if(cake) cake.checked = !!r.cake;
-          if(plate) plate.checked = !!r.plate;
-// ▼ 人数の復元（2〜6ならそのまま、1や7以上はカスタマイズに切替）
-(()=>{
-  const gSel = document.getElementById(`guest-${idx}`);
-  const gInp = document.getElementById(`guestCustom-${idx}`);
-  const g = Number(r.guest || 0);
-
-  if (g >= 2 && g <= 6) {
-    if (gSel) gSel.value = String(g);
-    if (gInp) gInp.style.display = 'none';
-  } else if (g >= 1) {
-    if (gSel) gSel.value = 'custom';
-    if (gInp) {
-      gInp.value = String(g);
-      gInp.style.display = 'inline-block';
-    }
-  } else {
-    if (gSel) gSel.value = '';
-    if (gInp) gInp.style.display = 'none';
+    return items;
   }
-})();
-        }
-      });
 
-      // カスタム部屋（固定10に無い名前があれば最初の1件だけ反映）
-      const customOnly = data.rooms.find(r => !ROOMS.includes(r.name));
-      if(customOnly){
-        const use = document.getElementById('use-custom');
-        if(use) use.checked = true;
-        setValueIfExists(document.getElementById('custom-room-name'), customOnly.name);
-        setValueIfExists(document.getElementById('custom-guest'), customOnly.guest ?? '');
-        setValueIfExists(document.getElementById('custom-plan'), customOnly.plan ?? '');
-        setValueIfExists(document.getElementById('custom-dinner'), customOnly.dinner ?? '');
-        const cake = document.getElementById('custom-cake');
-        const plate = document.getElementById('custom-plate');
-        if(cake) cake.checked = !!customOnly.cake;
-        if(plate) plate.checked = !!customOnly.plate;
-setValueIfExists(document.getElementById('custom-guest'), customOnly.guest ?? '');
-
-(() => {
-  const g = Number(customOnly.guest || 0);
-  const gSel = document.getElementById('custom-guest');
-  const gInp = document.getElementById('custom-guestNum');
-  if (!gSel || !gInp) return;
-
-  if (g >= 2 && g <= 6) {
-    gSel.value = String(g);
-    gInp.style.display = 'none';
-  } else if (g >= 1) {
-    gSel.value = 'custom';
-    gInp.value = String(g);
-    gInp.style.display = 'inline-block';
-  } else {
-    gSel.value = '';
-    gInp.style.display = 'none';
+  if (saveBtn){
+    saveBtn.addEventListener('click', () => {
+      const payload = {
+        date: new Date().toISOString().slice(0,10), // YYYY-MM-DD
+        rooms: collectRows()
+      };
+      localStorage.setItem('today-settings.v1', JSON.stringify(payload));
+      alert('保存しました（today-settings.v1）');
+    });
   }
-})();
 
-
-    // ▲▲▲ ここまで追加 ▲▲▲
-
-   // ▼ 保存ボタンと「発注ボードへ」を有効化
-const saveBtn = document.getElementById('save-btn');
-const toBoardBtn = document.getElementById('to-board-btn');
-if (saveBtn) saveBtn.disabled = false;
-if (toBoardBtn) toBoardBtn.disabled = false;
-
-function collectRows(){
-  const items = [];
-  ROOMS.forEach((name, idx) => {
-    const enabled = document.getElementById(`use-${idx}`).checked;
-const gSel = document.getElementById(`guest-${idx}`);
-const guest = (gSel.value === 'custom')
-  ? Number(document.getElementById(`guestCustom-${idx}`).value || 0)
-  : Number(gSel.value || 0);
-    const plan = document.getElementById(`plan-${idx}`).value || "";
-    const dinner = document.getElementById(`dinner-${idx}`).value || "";
-    const cake = document.getElementById(`cake-${idx}`).checked;
-    const plate = document.getElementById(`plate-${idx}`).checked;
-    const allergy = document.getElementById(`allergy-${idx}`).value || "";
-    if (enabled) items.push({ name, guest, plan, dinner, cake, plate, allergy });
-  });
-  // カスタム
-if (document.getElementById('use-custom')?.checked){
-  const name = document.getElementById('custom-room-name').value.trim();
-  if (name){
-   const cgSel = document.getElementById('custom-guest');
-const cGuest = (cgSel.value === 'custom')
-  ? Number(document.getElementById('custom-guestNum').value || 0)
-  : Number(cgSel.value || 0);
-
-items.push({
-  name,
-  guest: cGuest,
-  // …（plan/dinner/cake/plate/allergy はそのまま）
-});
-
-  }
-}
-
-  return items;
-}
-
-function saveSettingsAnd(option){ // option: "stay" | "to-board"
-  const payload = { date: new Date().toISOString().slice(0,10), rooms: collectRows() };
-  localStorage.setItem('today-settings.v1', JSON.stringify(payload));
-  if (option === "to-board") location.href = './index.html?nocache=1';
-  else alert('保存しました（today-settings.v1）');
-}
-
-saveBtn?.addEventListener('click', () => saveSettingsAnd("stay"));
-toBoardBtn?.addEventListener('click', () => saveSettingsAnd("to-board"));
-
-// ▼ 人数のカスタマイズ欄の表示切り替え ▼
-document.addEventListener('change', (e) => {
-  if (e.target && e.target.id && e.target.id.startsWith('guest-')) {
-    const idx = e.target.id.split('-')[1];
-    const customInput = document.getElementById(`guestCustom-${idx}`);
-    if (customInput) {
-      customInput.style.display = e.target.value === 'custom' ? 'inline-block' : 'none';
-    }
+  if (toBoardBtn){
+    toBoardBtn.addEventListener('click', () => {
+      const payload = {
+        date: new Date().toISOString().slice(0,10),
+        rooms: collectRows()
+      };
+      localStorage.setItem('today-settings.v1', JSON.stringify(payload));
+      location.href = './index.html?nocache=1';
+    });
   }
 });
+</script>
 
-  </script>
 </body>
 </html>
