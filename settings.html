@@ -17,12 +17,24 @@
     .section h2{margin:0 0 10px 0;font-size:16px}
     .muted{color:var(--muted);font-size:12px}
     /* ▼ 列構成を6列に（夕食開始を追加） */
-    .row-head{display:grid;grid-template-columns:28px 130px 82px 140px 120px 1fr;gap:8px;padding:8px;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)}
-    .room-row{display:grid;grid-template-columns:28px 130px 82px 140px 120px 1fr;gap:8px;align-items:center;padding:10px;border-bottom:1px dashed var(--line)}
-    .room-row:last-child{border-bottom:none}
-    .room-name{font-weight:600}
-    input[type="number"], select, input[type="text"], textarea{
-      width:100%; box-sizing:border-box; padding:8px; border:1px solid var(--line); border-radius:8px; background:#fff; font-size:14px;
+  .room-row { gap: 10px; padding: 8px 10px; }
+.row-head { gap: 10px; }
+
+.room-row select,
+.room-row input[type="number"],
+.room-row input[type="text"] {
+  height: 36px;
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+
+.guest-wrap { display: inline-flex; gap: 6px; align-items: center; }
+.guest-wrap select { width: 110px; }
+.guest-wrap input[type="number"] { width: 64px; }
+
+.room-row label { margin-right: 8px; }
+[id^="allergy-"] { width: 100%; }
+
     }
     .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
     .btn{appearance:none;border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 14px;cursor:pointer}
