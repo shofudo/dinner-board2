@@ -242,7 +242,26 @@ const PLANS = ["スタンダード","和牛懐石","ステーキ","しゃぶし�
           const plate = document.getElementById(`plate-${idx}`);
           if(cake) cake.checked = !!r.cake;
           if(plate) plate.checked = !!r.plate;
-          setValueIfExists(document.getElementById(`allergy-${idx}`), r.allergy ?? '');
+// ▼ 人数の復元（2〜6ならそのまま、1や7以上はカスタマイズに切替）
+(()=>{
+  const gSel = document.getElementById(`guest-${idx}`);
+  const gInp = document.getElementById(`guestCustom-${idx}`);
+  const g = Number(r.guest || 0);
+
+  if (g >= 2 && g <= 6) {
+    if (gSel) gSel.value = String(g);
+    if (gInp) gInp.style.display = 'none';
+  } else if (g >= 1) {
+    if (gSel) gSel.value = 'custom';
+    if (gInp) {
+      gInp.value = String(g);
+      gInp.style.display = 'inline-block';
+    }
+  } else {
+    if (gSel) gSel.value = '';
+    if (gInp) gInp.style.display = 'none';
+  }
+})();
         }
       });
 
