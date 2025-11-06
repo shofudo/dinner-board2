@@ -165,19 +165,46 @@
           const sweetTag = (r.cake || r.plate)
             ? `<div><span class="tag note">${[r.cake?"ケーキ":null, r.plate?"プレート":null].filter(Boolean).join("・")}</span></div>`
             : `<div class="muted">未</div>`;
-          return `
-            <div class="room-row" style="display:grid;grid-template-columns:220px repeat(7,1fr);gap:8px;align-items:center;padding:10px;border-bottom:1px dashed #eee;">
-              <div><strong>${esc(r.name)}</strong>${tags}</div>
-              ${dishHeaders.slice(0,6).map(()=>`<div style="text-align:center;"><div class="dotbtn"></div><div class="muted">未</div></div>`).join("")}
-              <div style="text-align:center;">${sweetTag}</div>
-            </div>
-          `;
-        }).join("")}
+return `
+  <div class="room-row" style="display:grid;grid-template-columns:220px repeat(7,1fr);gap:8px;align-items:center;padding:10px;border-bottom:1px dashed #eee;">
+    <div><strong>${esc(r.name)}</strong>${tags}</div>
+    ${dishHeaders.map((_, idx)=>`
+      <div class="cell" data-group="${time}" data-room="${esc(r.name)}" data-col="${idx}" style="text-align:center;">
+        <button class="dotbtn"></button>
+        <div class="dotlabel muted">未</div>
+        ${idx===6 ? sweetTag : ""}
       </div>
-    `;
+    `).join("")}
+  </div>
+`;
+
     const html = groupHtml("18:00", byTime["18:00"]) + groupHtml("18:30", byTime["18:30"]) + groupHtml("19:00", byTime["19:00"]);
     const root = document.getElementById('boards');
     if(root && html.trim()) root.innerHTML = html;
+    const st = loadBoard() || {};
+root.querySelectorAll('.cell').forEach(cell => {
+  const btn = cell.querySelector('.dotbtn');
+  const label = cell.querySelector('.dotlabel');
+  const groupId = cell.dataset.group;
+  const roomId  = cell.dataset.room;
+  const colIdx  = Number(cell.dataset.col);
+
+  ensureState(st, groupId, roomId, colIdx);
+  const on = st[groupId][roomId][colIdx] === 1;
+  btn.classList.toggle('is-on', on);
+  if (label) label.textContent = on ? '出' : '未';
+
+  btn.addEventListener('click', () => {
+    const cur = loadBoard() || {};
+    ensureState(cur, groupId, roomId, colIdx);
+    cur[groupId][roomId][colIdx] = cur[groupId][roomId][colIdx] === 1 ? 0 : 1;
+    saveBoard(cur);
+
+    const on2 = cur[groupId][roomId][colIdx] === 1;
+    btn.classList.toggle('is-on', on2);
+    if (label) label.textContent = on2 ? '出' : '未';
+  });
+});
   }
 
   document.addEventListener('DOMContentLoaded', () => {
@@ -236,19 +263,15 @@
             return `
               <div class="room-row" style="display:grid;grid-template-columns:220px repeat(7,1fr);gap:8px;align-items:center;padding:10px;border-bottom:1px dashed #eee;">
                 <div><strong>${esc(r.name)}</strong>${tags}</div>
-                ${dishHeaders.slice(0,6).map(()=>`
-                  <div style="text-align:center;">
-                    <div class="dotbtn"></div>
-                    <div class="dotlabel muted">未</div>
-                  </div>
-                `).join("")}
-                <div style="text-align:center;">${sweetTag}</div>
-              </div>
-            `;
-          }).join("")}
-        </div>
-      `;
-    };
+               ${dishHeaders.map((_, idx)=>`
+  <div class="cell" data-group="${time}" data-room="${esc(r.name)}" data-col="${idx}" style="text-align:center;">
+    <button class="dotbtn"></button>
+    <div class="dotlabel muted">未</div>
+    ${idx===6 ? sweetTag : ""}
+    </div>
+    `).join("")}
+  </div>
+`;
 
     const html =
       groupHtml("18:00", byTime["18:00"]) +
@@ -258,48 +281,32 @@
     const root = document.getElementById('boards');
     if(root && html.trim()){
       root.innerHTML = html;
+// ▼▼ ここから追記：◯ボタンの状態復元＋クリック保存 ▼▼
+const st = loadBoard() || {};
+root.querySelectorAll('.cell').forEach(cell => {
+  const btn = cell.querySelector('.dotbtn');
+  const label = cell.querySelector('.dotlabel');
+  const groupId = cell.dataset.group;   // 例: "18:00"
+  const roomId  = cell.dataset.room;    // 例: "やまぶき"
+  const colIdx  = Number(cell.dataset.col); // 0〜6（甘味は6）
 
-      // ▼▼▼ クリック状態の保存と復元 ▼▼▼
-      const dateKey = data.date || new Date().toISOString().slice(0,10);
-      const STATE_KEY = `board-state.v1:${dateKey}`;
+  ensureState(st, groupId, roomId, colIdx);
+  const on = st[groupId][roomId][colIdx] === 1;
+  btn.classList.toggle('is-on', on);
+  if (label) label.textContent = on ? '出' : '未';
 
-      function loadBoardState(){
-        try{ return JSON.parse(localStorage.getItem(STATE_KEY)) || {}; }
-        catch{ return {}; }
-      }
-      function saveBoardState(state){
-        localStorage.setItem(STATE_KEY, JSON.stringify(state));
-      }
+  btn.addEventListener('click', () => {
+    const cur = loadBoard() || {};
+    ensureState(cur, groupId, roomId, colIdx);
+    cur[groupId][roomId][colIdx] = cur[groupId][roomId][colIdx] === 1 ? 0 : 1;
+    saveBoard(cur);
 
-      const state = loadBoardState();
-
-      root.querySelectorAll('.room-row').forEach(row=>{
-        const room = row.querySelector('strong')?.textContent?.trim() || '';
-        const btns = row.querySelectorAll('.dotbtn');
-
-        btns.forEach((btn, idx)=>{
-          const label = btn.parentElement.querySelector('.dotlabel');
-          const key = `${room}:${idx}`;
-
-          // 復元
-          if(state[key]){
-            btn.classList.add('is-on');
-            if(label){ label.textContent = '出'; label.classList.remove('muted'); }
-          }
-
-          // トグル＆保存
-          btn.addEventListener('click', ()=>{
-            const on = btn.classList.toggle('is-on');
-            if(label){
-              label.textContent = on ? '出' : '未';
-              label.classList.toggle('muted', !on);
-            }
-            state[key] = on ? 1 : 0;
-            saveBoardState(state);
-          });
-        });
-      });
-      // ▲▲▲ ここまで
+    const on2 = cur[groupId][roomId][colIdx] === 1;
+    btn.classList.toggle('is-on', on2);
+    if (label) label.textContent = on2 ? '出' : '未';
+  });
+});
+// ▲▲ 追記ここまで ▲▲
     }
   }
 
