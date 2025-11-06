@@ -168,7 +168,7 @@
 return `
   <div class="room-row" style="display:grid;grid-template-columns:220px repeat(7,1fr);gap:8px;align-items:center;padding:10px;border-bottom:1px dashed #eee;">
     <div><strong>${esc(r.name)}</strong>${tags}</div>
-    ${dishHeaders.map((_, idx)=>`
+     ${dishHeaders.map((_, idx)=>`
       <div class="cell" data-group="${time}" data-room="${esc(r.name)}" data-col="${idx}" style="text-align:center;">
         <button class="dotbtn"></button>
         <div class="dotlabel muted">未</div>
@@ -263,15 +263,16 @@ root.querySelectorAll('.cell').forEach(cell => {
             return `
               <div class="room-row" style="display:grid;grid-template-columns:220px repeat(7,1fr);gap:8px;align-items:center;padding:10px;border-bottom:1px dashed #eee;">
                 <div><strong>${esc(r.name)}</strong>${tags}</div>
-               ${dishHeaders.map((_, idx)=>`
+  ${dishHeaders.map((_, idx)=>`
   <div class="cell" data-group="${time}" data-room="${esc(r.name)}" data-col="${idx}" style="text-align:center;">
     <button class="dotbtn"></button>
     <div class="dotlabel muted">未</div>
     ${idx===6 ? sweetTag : ""}
-    </div>
-    `).join("")}
   </div>
+`).join("")}
+</div>
 `;
+
 
     const html =
       groupHtml("18:00", byTime["18:00"]) +
