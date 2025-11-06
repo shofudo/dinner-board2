@@ -30,7 +30,8 @@ button { cursor: pointer; }
   border: 1px solid #ccc; background: #fff; cursor: pointer;
 }
 .dotbtn.is-on { background: #8fd; border-color: #5ab; }
-.dotlabel { font-size: 12px; opacity: .7; margin-top: 2px; }
+/* 丸ボタン直下の小さな「未」を非表示にする */
+.dotlabel { display: none !important; }
 .cell { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 /* 各セルの上に出す料理名（部屋ごとに変えられる） */
 .dishname {
@@ -42,6 +43,7 @@ button { cursor: pointer; }
   overflow-wrap: anywhere;
 }
 .cell { gap: 4px; }   /* 文字と丸の間を少し広げる */
+
 /* 小タグ（人数/プラン/アレルギー/デザート） */
 .tag {
   display:inline-block; font-size:12px; line-height:1;
@@ -50,6 +52,8 @@ button { cursor: pointer; }
 }
 .tag.warn { background:#fff2f2; border-color:#f0b5b5; }   /* アレルギー用 */
 .tag.note { background:#f7fff2; border-color:#cfe7b5; }   /* 甘味タグ用 */
-.tag{display:inline-block;font-size:12px;line-height:1;padding:2px 6px;border:1px solid #d8d8d8;border-radius:999px;background:#f6f7fb;margin-left:6px;white-space:nowrap;}
-.tag.warn{background:#fff2f2;border-color:#f0b5b5;}
-.tag.note{background:#f7fff2;border-color:#cfe7b5;}
+
+/* === 「未」などの上段行を非表示にする === */
+.status-row-top {
+  display: none;
+}
