@@ -13,6 +13,59 @@
   tabKitchen.addEventListener("click", () => { tabKitchen.setAttribute("aria-selected","true"); tabInput.removeAttribute("aria-selected"); show(viewKitchen); });
 
   /* ===== 進行表（18:00 / 18:30 / 19:00・2段階） ===== */
+  /* ▼▼ 丸ボタンの状態切替（未 → 時刻 → 発注 → 提供 → 未） ▼▼ */
+
+// 時刻を「HH:MM」型で作る
+function nowHHMM(){
+  const d = new Date();
+  const h = String(d.getHours()).padStart(2,"0");
+  const m = String(d.getMinutes()).padStart(2,"0");
+  return `${h}:${m}`;
+}
+
+// セルの表示を書き換える（丸と下の文字の両方に対応）
+function applyStateToCell(cell, state){
+  // 下の文字（「未」など）を探す。small / .label / .status の順で探し、なければ近いテキストを探す
+  const label =
+    cell.querySelector(".js-status, .status, .label, small") ||
+    cell.querySelector(".caption, .note") ||
+    cell.querySelector("*:not(button):not(input)");
+  if (label) label.textContent = state;
+
+  // 見た目用のclass（あれば効く、なくても大丈夫）
+  cell.classList.remove("is-none","is-time","is-order","is-serve");
+  if (state === "未") cell.classList.add("is-none");
+  else if (/^\d{2}:\d{2}$/.test(state)) cell.classList.add("is-time");
+  else if (state === "発注") cell.classList.add("is-order");
+  else if (state === "提供") cell.classList.add("is-serve");
+
+  // 次の判定のために保存
+  cell.dataset.state = state;
+}
+
+// クリックで状態を進める
+document.addEventListener("click", (ev) => {
+  // 「丸」そのもの、または丸の中身をクリックしたときに反応させる
+  const dot = ev.target.closest(".js-dot, .dot, .circle, .radio, .round, button");
+  if (!dot) return;
+
+  // 丸とラベルを一緒に包んでいる一番近い親（tdやdiv）をセル扱いにする
+  const cell = dot.closest("td, .cell, .dish, .stage, .col, div");
+  if (!cell) return;
+
+  // いまの状態を取得（なければ「未」）
+  let state = cell.dataset.state || (cell.textContent.includes("未") ? "未" : "未");
+
+  // 次の状態に進める
+  if (state === "未") state = nowHHMM();
+  else if (/^\d{2}:\d{2}$/.test(state)) state = "発注";
+  else if (state === "発注") state = "提供";
+  else state = "未";
+
+  applyStateToCell(cell, state);
+});
+/* ▲▲ ここまで追加 ▲▲ */
+
   const KEY_BOARD = "dinner.board.v2";
 
   const GROUPS = [
