@@ -12,6 +12,7 @@ button { cursor: pointer; }
   grid-template-columns: 240px repeat(7, 1fr);
   align-items: center;
 }
+
 .th, .td {
   padding: 8px;
   border-bottom: 1px solid #eee;
@@ -56,4 +57,56 @@ button { cursor: pointer; }
 /* === 「未」などの上段行を非表示にする === */
 .status-row-top {
   display: none;
+}
+/* === 丸ボタン：状態ごとの色分け === */
+.dotbtn[data-state="準備"] {
+  background: #4caf50;   /* 緑 */
+  border-color: #4caf50;
+}
+
+.dotbtn[data-state="発注"] {
+  background: #1e88e5;   /* 青 */
+  border-color: #1e88e5;
+}
+
+.dotbtn[data-state="提供"] {
+  background: #ff9800;   /* オレンジ */
+  border-color: #ff9800;
+}
+
+/* 未定は薄いグレーの枠だけ（中は白） */
+.dotbtn[data-state="未定"],
+.dotbtn:not([data-state]) {
+  background: #fff;
+  border-color: #bdbdbd;
+}
+/* プラン名の小タグ（丸ボタンの右に出す） */
+.plan-tag{
+  display:inline-block;
+  margin-left:6px;
+  padding:1px 6px;
+  font-size:11px;
+  line-height:1.6;
+  border:1px solid #ddd;
+  border-radius:10px;
+  color:#555;
+  white-space:nowrap;
+}
+/* === 丸ボタン右のプラン名タグ === */
+.plan-tag{
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 6px;
+  font-size: 11px;
+  line-height: 1;
+  border-radius: 10px;
+  background: #f3f4f6; /* 薄いグレー */
+  color: #555;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+/* ボタンの並びを崩さないための念のため */
+.cell .dotbtn + .plan-tag{
+  margin-left: 8px;
 }

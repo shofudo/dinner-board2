@@ -5,74 +5,82 @@
   const tabKitchen = document.getElementById("tab-kitchen");
   const viewInput = document.getElementById("view-input");
   const viewKitchen = document.getElementById("view-kitchen");
+  
   function show(view) {
     document.querySelectorAll(".view").forEach(v => v.classList.remove("is-active"));
     view.classList.add("is-active");
   }
-  tabInput.addEventListener("click", () => { tabInput.setAttribute("aria-selected","true"); tabKitchen.removeAttribute("aria-selected"); show(viewInput); });
-  tabKitchen.addEventListener("click", () => { tabKitchen.setAttribute("aria-selected","true"); tabInput.removeAttribute("aria-selected"); show(viewKitchen); });
-// === 時刻ユーティリティ（上に追加） ===
-function pad2(n){ return String(n).padStart(2,'0'); }
-function hhmm(d){ return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
-// グローバルに公開（他の関数からも使えるようにする）
-window.pad2 = pad2;
-window.hhmm = hhmm;
+  
+  if (tabInput && tabKitchen) {
+    tabInput.addEventListener("click", () => { 
+      tabInput.setAttribute("aria-selected","true"); 
+      tabKitchen.removeAttribute("aria-selected"); 
+      show(viewInput); 
+    });
+    tabKitchen.addEventListener("click", () => { 
+      tabKitchen.setAttribute("aria-selected","true"); 
+      tabInput.removeAttribute("aria-selected"); 
+      show(viewKitchen); 
+    });
+  }
 
-function addMinutes(d, mins){ return new Date(d.getTime() + mins*60000); }
-function isHHMM(s){ return /^\d{2}:\d{2}$/.test(String(s||'')); }
+  // === 時刻ユーティリティ ===
+  function pad2(n){ return String(n).padStart(2,'0'); }
+  function hhmm(d){ return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
+  
+  // グローバルに公開
+  window.pad2 = pad2;
+  window.hhmm = hhmm;
 
-  /* ===== 進行表（18:00 / 18:30 / 19:00・2段階） ===== */
+  function addMinutes(d, mins){ return new Date(d.getTime() + mins*60000); }
+  function isHHMM(s){ return /^\d{2}:\d{2}$/.test(String(s||'')); }
 
+  /* ===== 進行表 ===== */
   const KEY_BOARD = "dinner.board.v2";
+  const KEY_BOARD_V3 = "dinner.board.v3";
 
-  // === v3 保存・読込（最小セット）===
-const KEY_BOARD_V3 = "dinner.board.v3";
-
-function saveBoardV3(state){
-  localStorage.setItem(KEY_BOARD_V3, JSON.stringify(state));
-}
-
-function loadBoardV3(){
-  try{
-    const raw = localStorage.getItem(KEY_BOARD_V3);
-    return raw ? JSON.parse(raw) : {};
-  }catch(e){
-    return {};
+  function saveBoardV3(state){
+    localStorage.setItem(KEY_BOARD_V3, JSON.stringify(state));
   }
-}
 
-function ensureStateV3(state, groupId, roomId, colIdx){
-  if(!state[groupId]) state[groupId] = {};
-  if(!state[groupId][roomId]) state[groupId][roomId] = {};
-  if(typeof state[groupId][roomId][colIdx] !== "string"){
-    state[groupId][roomId][colIdx] = "未";
-  }
-}
-// === 本日データ：丸ボタン状態だけをリセット ===
-function resetBoardStatesToPendingV3(){
-  const state = loadBoardV3() || {};
-  const DISH_KEYS = ["吸物","刺身","蒸物","揚物","煮物","飯","甘味"];
-
-  // 全group→全room→各 dish に対して “未” へ
-  for(const gid in state){
-    for(const rid in state[gid]){
-      for(let i=0; i<DISH_KEYS.length; i++){
-        state[gid][rid][i] = "未";
-      }
+  function loadBoardV3(){
+    try{
+      const raw = localStorage.getItem(KEY_BOARD_V3);
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){
+      return {};
     }
   }
-  saveBoardV3(state);
-  renderBoardV3(state);
-  return state;
-}
 
-window.loadBoardV3  = loadBoardV3;
-window.saveBoardV3  = saveBoardV3;
-window.ensureStateV3 = ensureStateV3;
-window.renderBoardV3 = renderBoardV3;
-window.resetBoardStatesToPendingV3 = resetBoardStatesToPendingV3; // ★追加
+  function ensureStateV3(state, groupId, roomId, colIdx){
+    if(!state[groupId]) state[groupId] = {};
+    if(!state[groupId][roomId]) state[groupId][roomId] = {};
+    if(typeof state[groupId][roomId][colIdx] !== "string"){
+      state[groupId][roomId][colIdx] = "未";
+    }
+  }
 
+  // === 本日データ：丸ボタン状態だけをリセット（改善版） ===
+  function resetBoardStatesToPendingV3(){
+    const state = loadBoardV3() || {};
+    const DISH_KEYS = ["吸物","刺身","蒸物","揚物","煮物","飯","甘味"];
 
+    // すべての状態を「未」にリセット
+    for(const gid in state){
+      for(const rid in state[gid]){
+        for(let i=0; i<DISH_KEYS.length; i++){
+          state[gid][rid][i] = "未";
+        }
+      }
+    }
+    saveBoardV3(state);
+    return state;
+  }
+
+  window.loadBoardV3 = loadBoardV3;
+  window.saveBoardV3 = saveBoardV3;
+  window.ensureStateV3 = ensureStateV3;
+  window.resetBoardStatesToPendingV3 = resetBoardStatesToPendingV3;
 
   const GROUPS = [
     {
@@ -105,14 +113,20 @@ window.resetBoardStatesToPendingV3 = resetBoardStatesToPendingV3; // ★追加
   const COLS = ["吸物","刺身","蒸物","揚物","煮物","飯","甘味"];
 
   function saveBoard(state){ localStorage.setItem(KEY_BOARD, JSON.stringify(state)); }
+  
   function loadBoard(){
-    try { const raw = localStorage.getItem(KEY_BOARD); return raw ? JSON.parse(raw) : {}; }
-    catch { return {}; }
+    try { 
+      const raw = localStorage.getItem(KEY_BOARD); 
+      return raw ? JSON.parse(raw) : {}; 
+    } catch { 
+      return {}; 
+    }
   }
+  
   function ensureState(state, groupId, roomId, colIdx){
     if(!state[groupId]) state[groupId] = {};
     if(!state[groupId][roomId]) state[groupId][roomId] = {};
-    if(typeof state[groupId][roomId][colIdx] !== "number") state[groupId][roomId][colIdx] = 0; // 0:未 1:出
+    if(typeof state[groupId][roomId][colIdx] !== "number") state[groupId][roomId][colIdx] = 0;
   }
 
   function renderGroup(g, state){
@@ -152,10 +166,12 @@ window.resetBoardStatesToPendingV3 = resetBoardStatesToPendingV3; // ★追加
       </div>`;
   }
 
-  function renderBoardV3(){
+  function renderBoardV3(state){
     const container = document.getElementById("boards");
-    const state = loadBoard();
-    container.innerHTML = GROUPS.map(g => renderGroup(g, state)).join("");
+    if (!container) return;
+    
+    const boardState = state || loadBoard();
+    container.innerHTML = GROUPS.map(g => renderGroup(g, boardState)).join("");
 
     container.querySelectorAll(".cell .dotbtn").forEach(btn => {
       btn.addEventListener("click", (e)=>{
@@ -176,21 +192,15 @@ window.resetBoardStatesToPendingV3 = resetBoardStatesToPendingV3; // ★追加
     });
   }
 
-document.getElementById("btn-reset-today")?.addEventListener("click", ()=>{   // ← ? つけるとさらに安全
-    if(confirm("本日の進行データを消去します。よろしいですか？")){
-      localStorage.removeItem(KEY_BOARD);
-      localStorage.removeItem(KEY_BOARD_V3); //
-      localStorage.removeItem(`board-state.v1:${new Date().toISOString().slice(0,10)}`);
-
-      renderBoardV3();
-    }
-  });
+  window.renderBoardV3 = renderBoardV3;
 
   // 初期表示
   renderBoardV3();
+
 })(); // まとまり終わり
+
 // ==============================
-// 本日の設定（today-settings.v1）→ 発注ボード反映（統一版）
+// 本日の設定（today-settings.v1）→ 発注ボード反映
 // ==============================
 (function(){
   function loadSettings(){
@@ -200,7 +210,9 @@ document.getElementById("btn-reset-today")?.addEventListener("click", ()=>{   //
       const data = JSON.parse(raw);
       if(!data || !Array.isArray(data.rooms)) return null;
       return data;
-    }catch{ return null; }
+    }catch{ 
+      return null; 
+    }
   }
 
   function esc(s){
@@ -216,6 +228,15 @@ document.getElementById("btn-reset-today")?.addEventListener("click", ()=>{   //
     }
 
     const dishHeaders = ["吸物","刺身","蒸物","揚物","煮物","飯","甘味"];
+    
+    // プランごとの料理名マッピング
+    const planDishNames = {
+      'スタンダード': ["吸物", "刺身", "蒸物", "揚物", "煮物", "飯", "甘味"],
+      '和牛懐石': ["吸物", "刺身", "蒸物", "揚物", "煮物", "飯", "甘味"],
+      'ステーキ': ["吸物", "サラダ", "蒸物", "ステーキ", "煮物", "ご飯", "甘味"],
+      'しゃぶしゃぶ': ["果菜盛", "蒸物", "合肴", "しゃぶしゃぶ", "煮物", "ご飯", "甘味"],
+      '連泊': ["吸物", "刺身", "蒸物", "揚物", "煮物", "飯", "甘味"]
+    };
 
     const groupHtml = (time, list) => {
       return `
@@ -236,13 +257,25 @@ document.getElementById("btn-reset-today")?.addEventListener("click", ()=>{   //
               ? `<div><span class="tag note">${[r.cake?"ケーキ":null, r.plate?"プレート":null].filter(Boolean).join("・")}</span></div>`
               : `<div class="muted">未</div>`;
 
+            // プランごとの淡い色分け
+            const planColors = {
+              'スタンダード': '#e3f2fd',    // 淡い青
+              '和牛懐石': '#fff3e0',        // 淡いオレンジ
+              'ステーキ': '#fce4ec',        // 淡いピンク
+              'しゃぶしゃぶ': '#f3e5f5',    // 淡い紫
+              '連泊': '#e8f5e9'             // 淡い緑
+            };
+            const planBg = planColors[r.plan] || '#f5f5f5';
+            const planTextColor = '#555';
+
             return `
-              <div class="room-row" style="display:grid;grid-template-columns:220px repeat(7,1fr);gap:8px;align-items:center;padding:10px;border-bottom:1px dashed #eee;">
+              <div class="room-row" data-plan="${esc(r.plan||'')}" style="display:grid;grid-template-columns:220px repeat(7,1fr);gap:8px;align-items:center;padding:10px;border-bottom:1px dashed #eee;">
                 <div><strong>${esc(r.name)}</strong>${tags}</div>
                 ${dishHeaders.map((_, idx) => `
                   <div class="cell" data-group="${time}" data-room="${esc(r.name)}" data-col="${idx}" style="text-align:center;">
                     <button class="dotbtn"></button>
                     <div class="dotlabel muted">未</div>
+                    ${r.plan ? `<div class="plan-label" style="font-size:10px;color:${planTextColor};background:${planBg};padding:2px 8px;border-radius:6px;margin-top:4px;display:inline-block;">${esc(r.plan)}</div>` : ''}
                     ${idx === 6 ? sweetTag : ""}
                   </div>
                 `).join("")}
@@ -262,135 +295,158 @@ document.getElementById("btn-reset-today")?.addEventListener("click", ()=>{   //
     if(root && html.trim()){
       root.innerHTML = html;
 
-     // ◯ボタンの状態復元＋クリック保存（保存先：dinner.board.v3 文字列）
-const st = loadBoardV3() || {};
-root.querySelectorAll('.cell').forEach(cell => {
-  const btn = cell.querySelector('.dotbtn');
-  const label = cell.querySelector('.dotlabel');
-  const groupId = cell.dataset.group;       // 例: "18:00"
-  const roomId  = cell.dataset.room;        // 例: "やまぶき"
-  const colIdx  = Number(cell.dataset.col); // 0〜6
+      // ◯ボタンの状態復元＋クリック保存
+      const st = loadBoardV3() || {};
+      root.querySelectorAll('.cell').forEach(cell => {
+        const btn = cell.querySelector('.dotbtn');
+        const label = cell.querySelector('.dotlabel');
+        const groupId = cell.dataset.group;
+        const roomId  = cell.dataset.room;
+        const colIdx  = Number(cell.dataset.col);
 
-  ensureStateV3(st, groupId, roomId, colIdx);
+        ensureStateV3(st, groupId, roomId, colIdx);
 
-  // 表示復元：未／発注／提供／HH:MM
-  const cur = st[groupId][roomId][colIdx];
-  if (label) label.textContent = cur;
-  btn.classList.toggle('is-on', cur !== '未');
+        const cur = st[groupId][roomId][colIdx];
+        if (label) label.textContent = cur;
+        btn.classList.toggle('is-on', cur !== '未');
+        
+        // data-state属性を設定（CSSで色分けするため）
+        btn.setAttribute('data-state', cur);
 
-  btn.addEventListener('click', () => {
-    // 直前の状態（最新を読む）
-    const curSt = loadBoardV3();
-    ensureStateV3(curSt, groupId, roomId, colIdx);
-    const prev = curSt[groupId][roomId][colIdx];
-    let next = '未';
+        btn.addEventListener('click', () => {
+          const curSt = loadBoardV3();
+          ensureStateV3(curSt, groupId, roomId, colIdx);
+          const prev = curSt[groupId][roomId][colIdx];
+          let next = '未';
 
- // 流れ：未 → 準備 → 発注 → 提供 → 未
-if (prev === "未") {
-  next = "準備";
-} else if (prev === "準備") {
-  next = "発注";
-} else if (prev === "発注") {
-  next = "提供";
-} else {
-  next = "未";
-}
+          if (prev === "未") {
+            next = "準備";
+          } else if (prev === "準備") {
+            next = "発注";
+          } else if (prev === "発注") {
+            next = "提供";
+          } else {
+            next = "未";
+          }
 
-// 押した瞬間の時刻をボタンの下に表示
-const cell = btn.closest('td') || btn.parentElement;
-let timeLine = cell.querySelector('.js-time');
-if (!timeLine) {
-  timeLine = document.createElement('div');
-  timeLine.className = 'js-time';
-  timeLine.style.fontSize = '12px';
-  timeLine.style.color = '#666';
-  timeLine.style.marginTop = '4px';
-  cell.appendChild(timeLine);
-}
-timeLine.textContent = hhmm(new Date());
+          // 時刻表示
+          const cellEl = btn.closest('td') || btn.parentElement;
+          let timeLine = cellEl.querySelector('.js-time');
+          if (!timeLine) {
+            timeLine = document.createElement('div');
+            timeLine.className = 'js-time';
+            timeLine.style.fontSize = '12px';
+            timeLine.style.color = '#666';
+            timeLine.style.marginTop = '4px';
+            cellEl.appendChild(timeLine);
+          }
+          timeLine.textContent = hhmm(new Date());
 
-
-    // 保存＆表示更新
-    curSt[groupId][roomId][colIdx] = next;
-    saveBoardV3(curSt);
-    if (label) label.textContent = next;
-    btn.classList.toggle('is-on', next !== '未');
-  });
-});
-
+          curSt[groupId][roomId][colIdx] = next;
+          saveBoardV3(curSt);
+          if (label) label.textContent = next;
+          btn.classList.toggle('is-on', next !== '未');
+          
+          // data-state属性を更新
+          btn.setAttribute('data-state', next);
+        });
+      });
     }
+  }
+
+  /* ==== プラン名タグ追加 ==== */
+  function addPlanTagsToDots(){
+    const rows = document.querySelectorAll('#boards .row, #boards .rowline, #boards .room-row');
+    console.log('[planTag] rows=', rows.length);
+
+    if (!rows.length) return;
+
+    rows.forEach(row => {
+      let planText = (row.dataset && row.dataset.plan) ? String(row.dataset.plan).trim() : '';
+
+      if(!planText){
+        const candidates = [];
+        row.querySelectorAll('.js-plan-badge, .badge, [data-plan-label], .tag').forEach(el => {
+          const t = (el.textContent || '').trim();
+          if (!t) return;
+          if (/\d+\s*名$/.test(t)) return;
+          if (t.startsWith('アレルギー')) return;
+          candidates.push(t);
+        });
+
+        const KNOWN = ['スタンダード','和牛懐石','ステーキ','しゃぶしゃぶ','連泊','未選択'];
+        planText =
+          candidates.find(t => KNOWN.includes(t)) ||
+          candidates.sort((a,b)=>b.length-a.length)[0] || '';
+      }
+
+      if(!planText){
+        console.log('[planTag] ❌ planTextなし row=', row);
+        return;
+      }
+      console.log('[planTag] ✅ planText=', planText, 'row=', row);
+
+      const dots = row.querySelectorAll('.dotbtn, button.dotbtn');
+      if(!dots.length) return;
+
+      dots.forEach(dot => {
+        if (dot.nextElementSibling?.classList?.contains('plan-tag')) return;
+
+        const tag = document.createElement('span');
+        tag.className = 'plan-tag';
+        tag.textContent = planText;
+        tag.style.fontSize = '10px';
+        tag.style.color = '#999';
+        tag.style.marginLeft = '4px';
+        dot.after(tag);
+      });
+    });
   }
 
   // 初期実行
   document.addEventListener('DOMContentLoaded', () => {
+    const data = loadSettings();
+    if (data) {
+      renderFromSettings(data);
+    } else {
+      renderBoardV3();
+    }
 
-const data = loadSettings();
-if (data) {
-  renderFromSettings(data);   // ← 設定データから描画
-} else {
-  renderBoardV3();            // ← 設定が無いときの予備表示
-}
+    // プランタグ追加
+    setTimeout(addPlanTagsToDots, 0);
 
-  const resetBtn = document.getElementById("btn-reset-today");
-  if(resetBtn){
-  resetBtn.addEventListener("click", () => {
-  if (!confirm("本日の丸の状態をすべて『未』に戻します。よろしいですか？")) return;
+    const boards = document.getElementById('boards');
+    if (boards) {
+      const mo = new MutationObserver(() => {
+        addPlanTagsToDots();
+      });
+      mo.observe(boards, { childList: true, subtree: true });
+    }
 
-  const state = resetBoardStatesToPendingV3(); // ← 戻り値を受け取る
-  renderBoardV3(state);                        // ← 再描画
-  saveBoardV3(state);                          // ← 保存
-});
+    // === リセットボタン（改善版） ===
+    const resetBtn = document.getElementById("btn-reset-today");
+    if(resetBtn){
+      resetBtn.addEventListener("click", () => {
+        if (!confirm("本日の丸ボタンの状態をすべて『未』に戻します。よろしいですか？")) return;
 
-  }
+        // 状態をリセット
+        const state = resetBoardStatesToPendingV3();
+        
+        // 古い形式のデータも削除
+        localStorage.removeItem("dinner.board.v2");
+        localStorage.removeItem(`board-state.v1:${new Date().toISOString().slice(0,10)}`);
 
-
+        // 画面を再描画
+        const currentData = loadSettings();
+        if (currentData) {
+          renderFromSettings(currentData);
+          alert('リセットしました！すべての丸ボタンが「未」になりました。');
+        } else {
+          renderBoardV3(state);
+          alert('リセットしました！すべての丸ボタンが「未」になりました。');
+        }
+      });
+    }
   });
+
 })();
-/* ===== 丸ボタン： 準備 → 発注 → 提供 → 未定 のループ ===== */
-
-const CYCLE = ["準備","発注","提供","未定"];
-function nextState(cur){
-  const i = CYCLE.indexOf(cur);
-  if (i === -1) return CYCLE[0];
-  return CYCLE[(i+1) % CYCLE.length];
-}
-
-/* そのセルに表示用の行が無ければ作る */
-function ensureDisplayLines(cell){
-  let stateLine = cell.querySelector('.js-state');
-  if(!stateLine){
-    stateLine = document.createElement('div');
-    stateLine.className = 'js-state';
-    stateLine.style.fontSize = '12px';
-    stateLine.style.marginTop = '4px';
-    cell.appendChild(stateLine);
-  }
-  let timeLine = cell.querySelector('.js-time');
-  if(!timeLine){
-    timeLine = document.createElement('div');
-    timeLine.className = 'js-time';
-    timeLine.style.fontSize = '12px';
-    timeLine.style.color = '#666';
-    cell.appendChild(timeLine);
-  }
-  return {stateLine, timeLine};
-}
-
-/* クリック（委任）… テーブルがJSで後から描画でもOK */
-document.addEventListener('click', (ev)=>{
-const btn = ev.target.closest('.dotbtn');
-  if(!btn) return;
-
-  const cell = btn.closest('td') || btn.parentElement;
-
-  /* 現在→次の状態 */
-  const current = btn.dataset.state || "準備";
-  const next = nextState(current);
-  btn.dataset.state = next;
-
-  /* 表示更新 */
-  const {stateLine, timeLine} = ensureDisplayLines(cell);
-  const now = new Date();
-  stateLine.textContent = (next === "未定") ? "未" : next;
-  timeLine.textContent = hhmm(now);
-});

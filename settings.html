@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
   <title>本日の設定</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
@@ -49,8 +49,8 @@
 
 /* 人数の小さな並び（プルダウン＋数字） */
 .guest-wrap{ display:inline-flex; gap:6px; align-items:center; }
-.guest-wrap select{ width:120px; }          /* 広げたければ 130〜140 に */
-.guest-wrap input[type="number"]{ width:72px; } /* 広げたければ 80〜90 に */
+.guest-wrap select{ width:120px; }          /* 広げたければ 130～140 に */
+.guest-wrap input[type="number"]{ width:72px; } /* 広げたければ 80～90 に */
 
 /* ケーキ/プレートの並び */
 .room-row label{ margin:0 8px 0 0; white-space:nowrap; }
@@ -63,6 +63,7 @@
     .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
     .btn{appearance:none;border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 14px;cursor:pointer}
     .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+    .btn.secondary{background:#666;color:#fff;border-color:#666}
     .note{font-size:12px;color:var(--muted);margin-top:6px}
   </style>
 </head>
@@ -75,7 +76,7 @@
 <section id="settings-root" class="section">
   <h2>部屋ごとの設定</h2>
   <div class="muted">
-    チェックした部屋だけを「発注ボード」に反映する想定です（保存は次のステップで実装）。
+    チェックした部屋だけを「発注ボード」に反映する想定です。
   </div>
 
   <!-- 見出し行（横並びヘッダー） -->
@@ -96,7 +97,7 @@
     <div><input type="checkbox" id="use-custom"></div>
     <div><input type="text" id="custom-room-name" placeholder="カスタム部屋名"></div>
 
-    <!-- 人数（2〜6＋カスタマイズ） -->
+    <!-- 人数（2～6＋カスタマイズ） -->
     <div class="guest-wrap" style="display:inline-flex; gap:6px; align-items:center;">
       <select id="custom-guest"
               onchange="document.getElementById('custom-guestNum').style.display = (this.value==='custom') ? 'inline-block' : 'none'">
@@ -136,10 +137,10 @@
   </div>
 
   <div class="controls">
-<button id="save-next-btn" class="btn primary">保存（次の回で有効化）</button>
-    <button class="btn" id="to-board-btn" disabled>発注ボードへ（次の回で有効化）</button>
+    <button id="save-and-board-btn" class="btn primary">保存して発注ボードへ</button>
+    <button id="save-only-btn" class="btn secondary">保存のみ</button>
   </div>
-  <div class="note">※ いまは見た目確認のみ。保存・反映は次回のステップで入れます。</div>
+  <div class="note">※ 保存すると、次回から設定が反映されます。</div>
 </section>
         <div>
 
@@ -198,12 +199,7 @@ const PLANS = ["スタンダード", "和牛懐石", "ステーキ", "しゃぶ�
     wrap.appendChild(row);
   });
 
-  // ▼ 保存ボタンを有効化し、押したら localStorage に保存
-  const saveBtn = document.getElementById('save-btn');
-  const toBoardBtn = document.getElementById('to-board-btn');
-  if (saveBtn) saveBtn.disabled = false;
-  if (toBoardBtn) toBoardBtn.disabled = false;
-
+  // データ収集関数
   function collectRows(){
     const items = [];
     ROOMS.forEach((name, idx) => {
@@ -222,11 +218,19 @@ const PLANS = ["スタンダード", "和牛懐石", "ステーキ", "しゃぶ�
     // カスタム
     const useCustom = document.getElementById('use-custom');
     if (useCustom && useCustom.checked){
-      const name = (document.getElementById('custom-room-name').value || '').trim();
-      if (name){
+      const customName = (document.getElementById('custom-room-name').value || '').trim();
+      if (customName){
+        const guestSelect = document.getElementById('custom-guest').value;
+        let guestNum = 0;
+        if (guestSelect === 'custom') {
+          guestNum = Number(document.getElementById('custom-guestNum').value || 0);
+        } else if (guestSelect) {
+          guestNum = Number(guestSelect);
+        }
+        
         items.push({
-          name,
-          guest: Number(document.getElementById('custom-guest').value || 0),
+          name: customName,
+          guest: guestNum,
           plan: document.getElementById('custom-plan').value || "",
           dinner: document.getElementById('custom-dinner').value || "",
           cake: document.getElementById('custom-cake').checked,
@@ -238,102 +242,81 @@ const PLANS = ["スタンダード", "和牛懐石", "ステーキ", "しゃぶ�
     return items;
   }
 
-  if (saveBtn){
-    saveBtn.addEventListener('click', () => {
-      const payload = {
-        date: new Date().toISOString().slice(0,10), // YYYY-MM-DD
-        rooms: collectRows()
-      };
-      localStorage.setItem('today-settings.v1', JSON.stringify(payload));
-      alert('保存しました（today-settings.v1）');
+  // 保存関数
+  function saveSettings() {
+    const payload = {
+      date: new Date().toISOString().slice(0,10), // YYYY-MM-DD
+      rooms: collectRows()
+    };
+    localStorage.setItem('today-settings.v1', JSON.stringify(payload));
+  }
+
+  // 「保存して発注ボードへ」ボタン
+  const saveAndBoardBtn = document.getElementById('save-and-board-btn');
+  if (saveAndBoardBtn){
+    saveAndBoardBtn.addEventListener('click', () => {
+      saveSettings();
+      alert('保存しました！発注ボードへ移動します。');
+      location.href = './index.html?nocache=' + Date.now();
     });
   }
 
-  if (toBoardBtn){
-    toBoardBtn.addEventListener('click', () => {
-      const payload = {
-        date: new Date().toISOString().slice(0,10),
-        rooms: collectRows()
-      };
-      localStorage.setItem('today-settings.v1', JSON.stringify(payload));
-      location.href = './index.html?nocache=1';
+  // 「保存のみ」ボタン
+  const saveOnlyBtn = document.getElementById('save-only-btn');
+  if (saveOnlyBtn){
+    saveOnlyBtn.addEventListener('click', () => {
+      saveSettings();
+      alert('保存しました！');
     });
   }
-});
-// ===== 本日の設定 保存/読込（最小実装） =====
-(() => {
-  const STORAGE_KEY = 'dinner.today.settings.v1';
 
-  function saveToStorage(data){
+  // ページ読み込み時に前回の設定を復元
+  function loadPreviousSettings() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch(e){
-      console.warn('localStorage に保存できませんでした', e);
-    }
-  }
+      const raw = localStorage.getItem('today-settings.v1');
+      if (!raw) return;
+      
+      const data = JSON.parse(raw);
+      if (!data || !Array.isArray(data.rooms)) return;
 
-  function loadFromStorage(){
-    try {
-      const s = localStorage.getItem(STORAGE_KEY);
-      return s ? JSON.parse(s) : null;
-    } catch(e){
-      console.warn('localStorage の読込でエラー', e);
-      return null;
-    }
-  }
-
-  // 画面上の全 input/select/textarea を拾って値を集める
-  function collectSettings(){
-    const root = document.getElementById('settings-root') || document;
-    const nodes = root.querySelectorAll('input, select, textarea');
-    const data = {};
-    let auto = 0;
-    nodes.forEach(el => {
-      const key = el.name || el.id || (el.dataset.key ||= `k${auto++}`);
-      let val;
-      if (el.type === 'checkbox') {
-        val = el.checked ? 1 : 0;
-      } else {
-        val = el.value;
-      }
-      data[key] = val;
-    });
-    return data;
-  }
-
-  // 保存してあった値を画面に反映
-  function applySettings(data){
-    if(!data) return;
-    const root = document.getElementById('settings-root') || document;
-    const nodes = root.querySelectorAll('input, select, textarea');
-    nodes.forEach(el => {
-      const key = el.name || el.id || el.dataset.key;
-      if (key in data){
-        if (el.type === 'checkbox') {
-          el.checked = !!data[key];
+      // 各部屋の設定を復元
+      data.rooms.forEach(room => {
+        const idx = ROOMS.indexOf(room.name);
+        if (idx !== -1) {
+          // 固定部屋の場合
+          document.getElementById(`use-${idx}`).checked = true;
+          if (room.guest) document.getElementById(`guest-${idx}`).value = room.guest;
+          if (room.plan) document.getElementById(`plan-${idx}`).value = room.plan;
+          if (room.dinner) document.getElementById(`dinner-${idx}`).value = room.dinner;
+          if (room.cake) document.getElementById(`cake-${idx}`).checked = true;
+          if (room.plate) document.getElementById(`plate-${idx}`).checked = true;
+          if (room.allergy) document.getElementById(`allergy-${idx}`).value = room.allergy;
         } else {
-          el.value = data[key];
+          // カスタム部屋の場合
+          document.getElementById('use-custom').checked = true;
+          document.getElementById('custom-room-name').value = room.name;
+          if (room.guest <= 6) {
+            document.getElementById('custom-guest').value = room.guest;
+          } else {
+            document.getElementById('custom-guest').value = 'custom';
+            document.getElementById('custom-guestNum').style.display = 'inline-block';
+            document.getElementById('custom-guestNum').value = room.guest;
+          }
+          if (room.plan) document.getElementById('custom-plan').value = room.plan;
+          if (room.dinner) document.getElementById('custom-dinner').value = room.dinner;
+          if (room.cake) document.getElementById('custom-cake').checked = true;
+          if (room.plate) document.getElementById('custom-plate').checked = true;
+          if (room.allergy) document.getElementById('custom-allergy').value = room.allergy;
         }
-      }
-    });
+      });
+    } catch(e) {
+      console.error('設定の読み込みに失敗しました', e);
+    }
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    // 1) ページを開いたら前回保存分を反映
-    applySettings(loadFromStorage());
-
-    // 2) 「保存（次の回で有効化）」で保存
-    const saveBtn = document.getElementById('save-next-btn');
-    if (saveBtn){
-      saveBtn.addEventListener('click', () => {
-        const data = collectSettings();
-        saveToStorage(data);
-        alert('保存しました。次の回で有効になります。');
-      });
-    }
-  });
-})();
-
+  // 初期化時に前回の設定を読み込む
+  loadPreviousSettings();
+});
 </script>
 
 </body>
