@@ -60,7 +60,7 @@
     }
   }
 
-  // === 本日データ：丸ボタン状態だけをリセット（改善版） ===
+  // === 本日データ:丸ボタン状態だけをリセット（改善版） ===
   function resetBoardStatesToPendingV3(){
     const state = loadBoardV3() || {};
     const DISH_KEYS = ["吸物","刺身","蒸物","揚物","煮物","飯","甘味"];
@@ -221,96 +221,286 @@
     }[m]));
   }
 
+  // スタッフポップアップ表示関数
+  function showStaffPopup(groupId, roomId, colIdx, callback) {
+    const settings = loadSettings();
+    const staffList = settings?.staff || ['真弓', 'ミン', 'ボビ', 'サラミ', 'パビ', '翔平'];
+    
+    // カスタムスタッフが設定されている場合は追加
+    if (settings?.customStaff) {
+      staffList.push(settings.customStaff);
+    }
+
+    const popup = document.createElement('div');
+    popup.className = 'staff-popup-overlay';
+    popup.innerHTML = `
+      <div class="staff-popup">
+        <h3>提供スタッフを選択</h3>
+        <div class="staff-list">
+          ${staffList.map(staff => `
+            <button class="staff-btn" data-staff="${esc(staff)}">${esc(staff)}</button>
+          `).join('')}
+        </div>
+        <button class="staff-cancel">キャンセル</button>
+      </div>
+    `;
+
+    document.body.appendChild(popup);
+
+    popup.querySelectorAll('.staff-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const staff = btn.dataset.staff;
+        callback(staff);
+        document.body.removeChild(popup);
+      });
+    });
+
+    popup.querySelector('.staff-cancel').addEventListener('click', () => {
+      document.body.removeChild(popup);
+    });
+  }
+
+  // ウェルダン選択ポップアップ表示関数
+  function showWelldonePopup(groupId, roomId, colIdx, callback) {
+    const popup = document.createElement('div');
+    popup.className = 'welldone-popup-overlay';
+    popup.innerHTML = `
+      <div class="welldone-popup">
+        <h3>ウェルダンの人数を選択</h3>
+        <div class="welldone-list">
+          <button class="welldone-btn" data-count="0">なし</button>
+          <button class="welldone-btn" data-count="1">W×1名</button>
+          <button class="welldone-btn" data-count="2">W×2名</button>
+          <button class="welldone-btn" data-count="3">W×3名</button>
+          <button class="welldone-btn" data-count="4">W×4名</button>
+          <button class="welldone-btn" data-count="5">W×5名</button>
+        </div>
+        <button class="welldone-cancel">キャンセル</button>
+      </div>
+    `;
+
+    document.body.appendChild(popup);
+
+    popup.querySelectorAll('.welldone-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const count = Number(btn.dataset.count);
+        callback(count);
+        document.body.removeChild(popup);
+      });
+    });
+
+    popup.querySelector('.welldone-cancel').addEventListener('click', () => {
+      callback(null);
+      document.body.removeChild(popup);
+    });
+  }
+
+  // 食事スピード変更機能
+  function createSpeedSelector(groupId, roomId) {
+    const speeds = ['とてもはやい', 'はやい', '普通', 'おそい', 'とてもおそい'];
+    const storageKey = `speed-${groupId}-${roomId}`;
+    const saved = localStorage.getItem(storageKey) || '普通';
+
+    const selector = document.createElement('select');
+    selector.className = 'speed-selector';
+    speeds.forEach(speed => {
+      const option = document.createElement('option');
+      option.value = speed;
+      option.textContent = speed;
+      if (speed === saved) option.selected = true;
+      selector.appendChild(option);
+    });
+
+    selector.addEventListener('change', () => {
+      localStorage.setItem(storageKey, selector.value);
+    });
+
+    return selector;
+  }
+
   function renderFromSettings(data){
     const byTime = { "18:00":[], "18:30":[], "19:00":[] };
     for(const r of data.rooms){
       if(byTime[r.dinner]) byTime[r.dinner].push(r);
     }
 
-    const dishHeaders = ["吸物","刺身","蒸物","揚物","煮物","飯","甘味"];
-    
     // プランごとの料理名マッピング
     const planDishNames = {
-      'スタンダード': ["吸物", "刺身", "蒸物", "揚物", "煮物", "飯", "甘味"],
-      '和牛懐石': ["吸物", "刺身", "蒸物", "揚物", "煮物", "飯", "甘味"],
-      'ステーキ': ["吸物", "サラダ", "蒸物", "ステーキ", "煮物", "ご飯", "甘味"],
-      'しゃぶしゃぶ': ["果菜盛", "蒸物", "合肴", "しゃぶしゃぶ", "煮物", "ご飯", "甘味"],
-      '連泊': ["吸物", "刺身", "蒸物", "揚物", "煮物", "飯", "甘味"]
+      'スタンダード': ["吸物", "果菜盛", "蒸物", "揚物", "煮物", "ご飯", "甘味"],
+      '和牛懐石': ["吸物", "果菜盛", "すき焼き", "フライ", "ステーキ", "ご飯", "甘味"],
+      'ステーキ': ["吸物", "果菜盛", "蒸物", "揚物", "ステーキ", "ご飯", "甘味"],
+      'しゃぶしゃぶ': ["吸物", "果菜盛", "しゃぶしゃぶ", "蒸物", "揚物", "ご飯", "甘味"],
+      '連泊': ["茶碗蒸し", "牛たたき", "焼物", "小鉢", "揚物", "ご飯", "甘味"]
     };
 
-    const groupHtml = (time, list) => {
+    // プランごとの背景色
+    const planColors = {
+      'スタンダード': '#E3F2FD',
+      '和牛懐石': '#FFEBEE',
+      'ステーキ': '#FFF3E0',
+      'しゃぶしゃぶ': '#E8F5E9',
+      '連泊': '#F3E5F5'
+    };
+
+    // プランごとのタグ色
+    const planTagColors = {
+      'スタンダード': { bg: '#2196F3', color: '#fff' },
+      '和牛懐石': { bg: '#F44336', color: '#fff' },
+      'ステーキ': { bg: '#FF9800', color: '#fff' },
+      'しゃぶしゃぶ': { bg: '#4CAF50', color: '#fff' },
+      '連泊': { bg: '#9C27B0', color: '#fff' }
+    };
+
+    const groupHtml = (time, list, isLast) => {
       return `
-        <h2 style="margin:24px 0 8px 0;">${time} グループ</h2>
-        <div class="table like">
-          <div class="row-head" style="display:grid;grid-template-columns:220px repeat(7,1fr);gap:8px;padding:8px;border-bottom:1px solid #eee;font-size:12px;color:#666;">
-            <div>部屋 / 速度・アレルギー</div>
-            ${dishHeaders.map(h=>`<div>${h}</div>`).join("")}
-          </div>
-          ${list.map(r=>{
-            const tags = [
-              r.guest ? `<span class="tag">${r.guest}名</span>` : "",
-              r.plan  ? `<span class="tag">${esc(r.plan)}</span>` : "",
-              r.allergy ? `<span class="tag warn">アレルギー: ${esc(r.allergy)}</span>` : ""
-            ].join("");
+        <div class="time-group" style="border-bottom: ${isLast ? 'none' : '2px solid #e0e0e0'}; padding-bottom: 16px; margin-bottom: ${isLast ? '0' : '16px'};">
+          <h2 class="time-group-header" style="margin:8px 0 12px 0; font-size:14px; color:#999; font-weight:normal;">${time}</h2>
+          <div class="table like">
+            <div class="row-head" style="display:grid;grid-template-columns:240px repeat(7,1fr);gap:8px;padding:8px;border-bottom:1px solid #eee;font-size:12px;color:#666;">
+              <div>部屋 / スピード</div>
+              <div>吸物</div><div>刺身</div><div>蒸物</div><div>揚物</div><div>煮物</div><div>飯</div><div>甘味</div>
+            </div>
+            ${list.map(r=>{
+              const planBg = planColors[r.plan] || '#f5f5f5';
+              const tagColor = planTagColors[r.plan] || { bg: '#757575', color: '#fff' };
+              
+              // 人数タグを大きく表示
+              const guestTag = r.guest ? `<span class="guest-tag" style="display:inline-block; font-size:18px; font-weight:bold; padding:4px 12px; margin-right:8px; background:${tagColor.bg}; color:${tagColor.color}; border-radius:6px;">${r.guest}名</span>` : "";
+              
+              // プランタグ
+              const planTag = r.plan ? `<span class="plan-tag" style="display:inline-block; font-size:13px; padding:3px 10px; margin-right:6px; background:${tagColor.bg}; color:${tagColor.color}; border-radius:4px;">${esc(r.plan)}</span>` : "";
 
-            const sweetTag = (r.cake || r.plate)
-              ? `<div><span class="tag note">${[r.cake?"ケーキ":null, r.plate?"プレート":null].filter(Boolean).join("・")}</span></div>`
-              : `<div class="muted">未</div>`;
+              // プランごとの料理名を取得
+              const dishNames = r.plan && planDishNames[r.plan] ? planDishNames[r.plan] : ["吸物","刺身","蒸物","揚物","煮物","飯","甘味"];
 
-            // プランごとの淡い色分け
-            const planColors = {
-              'スタンダード': '#e3f2fd',    // 淡い青
-              '和牛懐石': '#fff3e0',        // 淡いオレンジ
-              'ステーキ': '#fce4ec',        // 淡いピンク
-              'しゃぶしゃぶ': '#f3e5f5',    // 淡い紫
-              '連泊': '#e8f5e9'             // 淡い緑
-            };
-            const planBg = planColors[r.plan] || '#f5f5f5';
-            const planTextColor = '#555';
+              // ケーキ・プレート表示
+              let sweetTag = '';
+              if (r.plan && (r.cake || r.plate)) {
+                sweetTag = `<div style="margin-top:4px;"><span class="tag note" style="font-size:11px;">${[r.cake?"ケーキ":null, r.plate?"プレート":null].filter(Boolean).join("・")}</span></div>`;
+              }
 
-            return `
-              <div class="room-row" data-plan="${esc(r.plan||'')}" style="display:grid;grid-template-columns:220px repeat(7,1fr);gap:8px;align-items:center;padding:10px;border-bottom:1px dashed #eee;">
-                <div><strong>${esc(r.name)}</strong>${tags}</div>
-                ${dishHeaders.map((_, idx) => `
-                  <div class="cell" data-group="${time}" data-room="${esc(r.name)}" data-col="${idx}" style="text-align:center;">
-                    <button class="dotbtn"></button>
-                    <div class="dotlabel muted">未</div>
-                    ${r.plan ? `<div class="plan-label" style="font-size:10px;color:${planTextColor};background:${planBg};padding:2px 8px;border-radius:6px;margin-top:4px;display:inline-block;">${esc(r.plan)}</div>` : ''}
-                    ${idx === 6 ? sweetTag : ""}
+              // 食事スピードセレクター
+              const speedSelector = `<div class="speed-wrap" style="margin-top:6px;"></div>`;
+
+              return `
+                <div class="room-row" data-plan="${esc(r.plan||'')}" style="display:grid;grid-template-columns:240px repeat(7,1fr);gap:8px;align-items:center;padding:12px 10px;border-bottom:1px dashed #eee;background:${planBg};">
+                  <div>
+                    <div style="margin-bottom:8px;">
+                      ${guestTag}${planTag}
+                    </div>
+                    <div><strong style="font-size:15px;">${esc(r.name)}</strong></div>
+                    ${speedSelector}
                   </div>
-                `).join("")}
-              </div>
-            `;
-          }).join("")}
+                  ${dishNames.map((dishName, idx) => {
+                    const dishKey = dishName;
+                    
+                    // この料理に該当するアレルギーを収集
+                    let allergyNotes = [];
+                    if (r.allergies && Array.isArray(r.allergies)) {
+                      r.allergies.forEach(allergy => {
+                        // 料理名のマッピング（本日の設定で使われる名称 → 実際の料理名）
+                        const dishMapping = {
+                          '吸物': '吸物',
+                          '果菜盛': '刺身',
+                          '蒸物': '蒸物',
+                          '揚物': '揚物',
+                          '煮物': '煮物',
+                          '飯': '飯',
+                          '甘味': '甘味'
+                        };
+                        
+                        // この料理がアレルギーの対象かチェック
+                        if (allergy.targets && allergy.targets.length > 0) {
+                          allergy.targets.forEach(target => {
+                            if (dishMapping[target] === dishName) {
+                              allergyNotes.push(allergy.name);
+                            }
+                          });
+                        }
+                      });
+                    }
+                    
+                    // アレルギー表示用HTML（丸ボタンの下に表示）
+                    const allergyDisplay = allergyNotes.length > 0 
+                      ? `<div class="allergy-display" style="font-size:10px;margin-top:2px;color:#d32f2f;font-weight:bold;">${allergyNotes.join('・')}NG</div>`
+                      : '';
+                    
+                    return `
+                      <div class="cell" data-group="${time}" data-room="${esc(r.name)}" data-col="${idx}" data-dish="${esc(dishKey)}" style="text-align:center;">
+                        <div class="dishname" style="font-size:11px;min-height:18px;margin-bottom:4px;color:#666;">${dishName}</div>
+                        <button class="dotbtn"></button>
+                        ${allergyDisplay}
+                        <div class="welldone-display" style="font-size:10px;margin-top:2px;color:#d32f2f;display:none;"></div>
+                        <div class="staff-display" style="font-size:10px;margin-top:2px;color:#1976d2;display:none;"></div>
+                        ${idx === 6 ? sweetTag : ""}
+                      </div>
+                    `;
+                  }).join("")}
+                </div>
+              `;
+            }).join("")}
+          </div>
         </div>
       `;
     };
 
-    const html =
-      groupHtml("18:00", byTime["18:00"]) +
-      groupHtml("18:30", byTime["18:30"]) +
-      groupHtml("19:00", byTime["19:00"]);
+    const times = ["18:00", "18:30", "19:00"];
+    const html = times.map((time, idx) => 
+      groupHtml(time, byTime[time], idx === times.length - 1)
+    ).join("");
 
     const root = document.getElementById('boards');
     if(root && html.trim()){
       root.innerHTML = html;
 
+      // 食事スピードセレクターを各部屋に追加
+      root.querySelectorAll('.room-row').forEach(row => {
+        const speedWrap = row.querySelector('.speed-wrap');
+        if (speedWrap) {
+          const roomName = row.querySelector('strong').textContent;
+          const timeGroup = row.closest('.time-group').querySelector('.time-group-header').textContent;
+          const selector = createSpeedSelector(timeGroup, roomName);
+          speedWrap.appendChild(selector);
+        }
+      });
+
       // ◯ボタンの状態復元＋クリック保存
       const st = loadBoardV3() || {};
       root.querySelectorAll('.cell').forEach(cell => {
         const btn = cell.querySelector('.dotbtn');
-        const label = cell.querySelector('.dotlabel');
+        const welldoneDisplay = cell.querySelector('.welldone-display');
+        const staffDisplay = cell.querySelector('.staff-display');
         const groupId = cell.dataset.group;
         const roomId  = cell.dataset.room;
         const colIdx  = Number(cell.dataset.col);
+        const dishName = cell.dataset.dish;
 
         ensureStateV3(st, groupId, roomId, colIdx);
 
+        // ウェルダン情報の復元
+        if (!st[groupId][roomId].welldone) {
+          st[groupId][roomId].welldone = {};
+        }
+        const welldoneCount = st[groupId][roomId].welldone[colIdx] || 0;
+        if (welldoneCount > 0 && welldoneDisplay) {
+          welldoneDisplay.textContent = `W×${welldoneCount}名`;
+          welldoneDisplay.style.display = 'block';
+        }
+
+        // スタッフ情報の復元
+        if (!st[groupId][roomId].staff) {
+          st[groupId][roomId].staff = {};
+        }
+        const staffName = st[groupId][roomId].staff[colIdx];
+        if (staffName && staffDisplay) {
+          staffDisplay.textContent = staffName;
+          staffDisplay.style.display = 'block';
+        }
+
         const cur = st[groupId][roomId][colIdx];
-        if (label) label.textContent = cur;
-        btn.classList.toggle('is-on', cur !== '未');
         
-        // data-state属性を設定（CSSで色分けするため）
+        // ボタン内に文字を表示
+        btn.textContent = cur;
         btn.setAttribute('data-state', cur);
 
         btn.addEventListener('click', () => {
@@ -319,14 +509,91 @@
           const prev = curSt[groupId][roomId][colIdx];
           let next = '未';
 
-          if (prev === "未") {
-            next = "準備";
-          } else if (prev === "準備") {
-            next = "発注";
-          } else if (prev === "発注") {
-            next = "提供";
+          // 果菜盛りとしゃぶしゃぶは3段階（未→待→済）
+          const isSimpleDish = dishName === '果菜盛' || dishName === 'しゃぶしゃぶ';
+
+          if (isSimpleDish) {
+            // 3段階遷移: 未→待→済→未
+            if (prev === "未") {
+              next = "待";
+            } else if (prev === "待") {
+              next = "済";
+              // 済になったときスタッフ選択
+              showStaffPopup(groupId, roomId, colIdx, (staff) => {
+                const st = loadBoardV3();
+                if (!st[groupId][roomId].staff) st[groupId][roomId].staff = {};
+                st[groupId][roomId].staff[colIdx] = staff;
+                saveBoardV3(st);
+                if (staffDisplay) {
+                  staffDisplay.textContent = staff;
+                  staffDisplay.style.display = 'block';
+                }
+              });
+            } else {
+              next = "未";
+              // 未に戻したらスタッフ情報削除
+              const st = loadBoardV3();
+              if (st[groupId][roomId].staff) {
+                delete st[groupId][roomId].staff[colIdx];
+              }
+              if (staffDisplay) {
+                staffDisplay.textContent = '';
+                staffDisplay.style.display = 'none';
+              }
+            }
           } else {
-            next = "未";
+            // 4段階遷移: 未→待→注→済→未
+            if (prev === "未") {
+              next = "待";
+              // 煮物の場合、待になったときウェルダン選択
+              if (dishName === '煮物' || dishName === 'ステーキ') {
+                showWelldonePopup(groupId, roomId, colIdx, (count) => {
+                  if (count !== null) {
+                    const st = loadBoardV3();
+                    if (!st[groupId][roomId].welldone) st[groupId][roomId].welldone = {};
+                    st[groupId][roomId].welldone[colIdx] = count;
+                    saveBoardV3(st);
+                    if (welldoneDisplay) {
+                      welldoneDisplay.textContent = count > 0 ? `W×${count}名` : '';
+                      welldoneDisplay.style.display = count > 0 ? 'block' : 'none';
+                    }
+                  }
+                });
+              }
+            } else if (prev === "待") {
+              next = "注";
+            } else if (prev === "注") {
+              next = "済";
+              // 済になったときスタッフ選択
+              showStaffPopup(groupId, roomId, colIdx, (staff) => {
+                const st = loadBoardV3();
+                if (!st[groupId][roomId].staff) st[groupId][roomId].staff = {};
+                st[groupId][roomId].staff[colIdx] = staff;
+                saveBoardV3(st);
+                if (staffDisplay) {
+                  staffDisplay.textContent = staff;
+                  staffDisplay.style.display = 'block';
+                }
+              });
+            } else {
+              next = "未";
+              // 未に戻したらウェルダンとスタッフ情報削除
+              const st = loadBoardV3();
+              if (st[groupId][roomId].welldone) {
+                delete st[groupId][roomId].welldone[colIdx];
+              }
+              if (st[groupId][roomId].staff) {
+                delete st[groupId][roomId].staff[colIdx];
+              }
+              if (welldoneDisplay) {
+                welldoneDisplay.textContent = '';
+                welldoneDisplay.style.display = 'none';
+              }
+              if (staffDisplay) {
+                staffDisplay.textContent = '';
+                staffDisplay.style.display = 'none';
+              }
+            }
           }
 
           // 時刻表示
@@ -335,72 +602,28 @@
           if (!timeLine) {
             timeLine = document.createElement('div');
             timeLine.className = 'js-time';
-            timeLine.style.fontSize = '12px';
-            timeLine.style.color = '#666';
-            timeLine.style.marginTop = '4px';
+            timeLine.style.fontSize = '10px';
+            timeLine.style.color = '#999';
+            timeLine.style.marginTop = '2px';
             cellEl.appendChild(timeLine);
           }
           timeLine.textContent = hhmm(new Date());
 
           curSt[groupId][roomId][colIdx] = next;
           saveBoardV3(curSt);
-          if (label) label.textContent = next;
-          btn.classList.toggle('is-on', next !== '未');
           
-          // data-state属性を更新
+          // ボタン内の文字を更新
+          btn.textContent = next;
           btn.setAttribute('data-state', next);
         });
       });
     }
   }
 
-  /* ==== プラン名タグ追加 ==== */
+  /* ==== プラン名タグ追加機能は無効化（料理名の下に直接表示するため不要） ==== */
   function addPlanTagsToDots(){
-    const rows = document.querySelectorAll('#boards .row, #boards .rowline, #boards .room-row');
-    console.log('[planTag] rows=', rows.length);
-
-    if (!rows.length) return;
-
-    rows.forEach(row => {
-      let planText = (row.dataset && row.dataset.plan) ? String(row.dataset.plan).trim() : '';
-
-      if(!planText){
-        const candidates = [];
-        row.querySelectorAll('.js-plan-badge, .badge, [data-plan-label], .tag').forEach(el => {
-          const t = (el.textContent || '').trim();
-          if (!t) return;
-          if (/\d+\s*名$/.test(t)) return;
-          if (t.startsWith('アレルギー')) return;
-          candidates.push(t);
-        });
-
-        const KNOWN = ['スタンダード','和牛懐石','ステーキ','しゃぶしゃぶ','連泊','未選択'];
-        planText =
-          candidates.find(t => KNOWN.includes(t)) ||
-          candidates.sort((a,b)=>b.length-a.length)[0] || '';
-      }
-
-      if(!planText){
-        console.log('[planTag] ❌ planTextなし row=', row);
-        return;
-      }
-      console.log('[planTag] ✅ planText=', planText, 'row=', row);
-
-      const dots = row.querySelectorAll('.dotbtn, button.dotbtn');
-      if(!dots.length) return;
-
-      dots.forEach(dot => {
-        if (dot.nextElementSibling?.classList?.contains('plan-tag')) return;
-
-        const tag = document.createElement('span');
-        tag.className = 'plan-tag';
-        tag.textContent = planText;
-        tag.style.fontSize = '10px';
-        tag.style.color = '#999';
-        tag.style.marginLeft = '4px';
-        dot.after(tag);
-      });
-    });
+    // この機能は使用しない
+    return;
   }
 
   // 初期実行
@@ -410,17 +633,6 @@
       renderFromSettings(data);
     } else {
       renderBoardV3();
-    }
-
-    // プランタグ追加
-    setTimeout(addPlanTagsToDots, 0);
-
-    const boards = document.getElementById('boards');
-    if (boards) {
-      const mo = new MutationObserver(() => {
-        addPlanTagsToDots();
-      });
-      mo.observe(boards, { childList: true, subtree: true });
     }
 
     // === リセットボタン（改善版） ===

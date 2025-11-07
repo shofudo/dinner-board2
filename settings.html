@@ -12,10 +12,149 @@
     html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;}
     header{position:sticky;top:0;background:var(--card);border-bottom:1px solid var(--line);padding:12px 16px;z-index:10;}
     header h1{margin:0;font-size:18px;}
-    main{padding:16px;max-width:1100px;margin:0 auto;}
+    main{padding:16px;max-width:1200px;margin:0 auto;}
     .section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:16px;}
     .section h2{margin:0 0 10px 0;font-size:16px}
     .muted{color:var(--muted);font-size:12px}
+
+/* スタッフ設定用 */
+.staff-section {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #f9f9f9;
+  border-radius: 8px;
+}
+
+.staff-checkboxes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.staff-checkboxes label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.staff-checkboxes label:hover {
+  background: #f0f7ff;
+  border-color: #1e88e5;
+}
+
+.staff-checkboxes input[type="checkbox"]:checked + span {
+  font-weight: bold;
+  color: #1e88e5;
+}
+
+.custom-staff-input {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  align-items: center;
+}
+
+.custom-staff-input input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+/* アレルギー設定用 */
+.allergy-advanced {
+  margin-top: 16px;
+  padding: 16px;
+  background: #fff9f0;
+  border: 2px solid #ffe0b2;
+  border-radius: 8px;
+}
+
+.allergy-list {
+  margin-top: 12px;
+}
+
+.allergy-item {
+  display: grid;
+  grid-template-columns: 1fr 2fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  margin-bottom: 12px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+.allergy-item input[type="text"] {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.dish-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dish-checkboxes label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.dish-checkboxes label:hover {
+  background: #e3f2fd;
+}
+
+.dish-checkboxes input[type="checkbox"]:checked + span {
+  font-weight: bold;
+  color: #1976d2;
+}
+
+.remove-allergy-btn {
+  padding: 6px 12px;
+  background: #f44336;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.remove-allergy-btn:hover {
+  background: #d32f2f;
+}
+
+.add-allergy-btn {
+  padding: 8px 16px;
+  background: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 12px;
+}
+
+.add-allergy-btn:hover {
+  background: #388e3c;
+}
+
 /* ▼ 列構成を6列（コンパクト表示） */
 .row-head{
   display:grid;
@@ -49,8 +188,8 @@
 
 /* 人数の小さな並び（プルダウン＋数字） */
 .guest-wrap{ display:inline-flex; gap:6px; align-items:center; }
-.guest-wrap select{ width:120px; }          /* 広げたければ 130～140 に */
-.guest-wrap input[type="number"]{ width:72px; } /* 広げたければ 80～90 に */
+.guest-wrap select{ width:120px; }
+.guest-wrap input[type="number"]{ width:72px; }
 
 /* ケーキ/プレートの並び */
 .room-row label{ margin:0 8px 0 0; white-space:nowrap; }
@@ -58,13 +197,11 @@
 /* アレルギー欄は最後の列いっぱい */
 [id^="allergy-"]{ width:100%; }
 
-
-  
-    .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-    .btn{appearance:none;border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 14px;cursor:pointer}
-    .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
-    .btn.secondary{background:#666;color:#fff;border-color:#666}
-    .note{font-size:12px;color:var(--muted);margin-top:6px}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.btn{appearance:none;border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 14px;cursor:pointer}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.secondary{background:#666;color:#fff;border-color:#666}
+.note{font-size:12px;color:var(--muted);margin-top:6px}
   </style>
 </head>
 <body>
@@ -73,6 +210,47 @@
   </header>
 
   <main>
+    
+<!-- スタッフ設定セクション -->
+<section class="section">
+  <h2>出勤スタッフの設定</h2>
+  <div class="muted">本日出勤するスタッフを選択してください。</div>
+  
+  <div class="staff-section">
+    <div class="staff-checkboxes" id="staff-checkboxes">
+      <label>
+        <input type="checkbox" value="真弓" checked>
+        <span>真弓</span>
+      </label>
+      <label>
+        <input type="checkbox" value="ミン" checked>
+        <span>ミン</span>
+      </label>
+      <label>
+        <input type="checkbox" value="ボビ" checked>
+        <span>ボビ</span>
+      </label>
+      <label>
+        <input type="checkbox" value="サラミ" checked>
+        <span>サラミ</span>
+      </label>
+      <label>
+        <input type="checkbox" value="パビ" checked>
+        <span>パビ</span>
+      </label>
+      <label>
+        <input type="checkbox" value="翔平" checked>
+        <span>翔平</span>
+      </label>
+    </div>
+    
+    <div class="custom-staff-input">
+      <label for="custom-staff-name">カスタムスタッフ名:</label>
+      <input type="text" id="custom-staff-name" placeholder="その他のスタッフ名を入力">
+    </div>
+  </div>
+</section>
+
 <section id="settings-root" class="section">
   <h2>部屋ごとの設定</h2>
   <div class="muted">
@@ -132,7 +310,10 @@
       <label style="display:inline-flex;gap:6px;align-items:center;margin-right:8px;">
         <input type="checkbox" id="custom-plate">プレート
       </label>
-      <input type="text" id="custom-allergy" placeholder="アレルギー（例：甲殻類）" style="margin-top:8px;width:100%">
+      
+      <!-- 拡張アレルギー設定ボタン -->
+      <button id="custom-allergy-btn" class="btn" style="margin-top:8px;">アレルギー詳細設定</button>
+      <div id="custom-allergy-list" style="margin-top:8px;"></div>
     </div>
   </div>
 
@@ -142,7 +323,6 @@
   </div>
   <div class="note">※ 保存すると、次回から設定が反映されます。</div>
 </section>
-        <div>
 
   </main>
 
@@ -155,15 +335,130 @@ document.addEventListener('DOMContentLoaded', () => {
   ];
 
   // プラン候補
-const PLANS = ["スタンダード", "和牛懐石", "ステーキ", "しゃぶしゃぶ", "連泊"];
+  const PLANS = ["スタンダード", "和牛懐石", "ステーキ", "しゃぶしゃぶ", "連泊"];
 
   // 夕食開始 候補
   const DINNER_TIMES = ["18:00", "18:30", "19:00"];
+  
+  // 料理タグ候補
+  const DISH_TAGS = ["吸物", "果菜盛", "蒸物", "揚物", "煮物", "飯", "甘味"];
+
+  // 各部屋のアレルギー設定を保存
+  const roomAllergies = {};
+
+  // アレルギー詳細設定ポップアップを表示
+  function showAllergyPopup(roomId, currentAllergies) {
+    const popup = document.createElement('div');
+    popup.className = 'allergy-popup-overlay';
+    popup.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000;';
+    
+    popup.innerHTML = `
+      <div class="allergy-popup" style="background:#fff;padding:24px;border-radius:12px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto;">
+        <h3>アレルギー詳細設定</h3>
+        <div class="muted">アレルギー名と対象の料理を選択してください。</div>
+        
+        <div class="allergy-list" id="allergy-popup-list"></div>
+        
+        <button class="add-allergy-btn" id="add-allergy-popup-btn">+ アレルギーを追加</button>
+        
+        <div class="controls" style="margin-top:20px;display:flex;gap:8px;">
+          <button class="btn primary" id="save-allergy-popup-btn">保存</button>
+          <button class="btn secondary" id="cancel-allergy-popup-btn">キャンセル</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(popup);
+    
+    const list = popup.querySelector('#allergy-popup-list');
+    const allergies = currentAllergies || [];
+    
+    function renderAllergyItem(allergy, index) {
+      const item = document.createElement('div');
+      item.className = 'allergy-item';
+      item.innerHTML = `
+        <input type="text" class="allergy-name" placeholder="アレルギー名（例:甲殻類）" value="${allergy.name || ''}">
+        <div class="dish-checkboxes">
+          ${DISH_TAGS.map(dish => `
+            <label>
+              <input type="checkbox" value="${dish}" ${allergy.targets && allergy.targets.includes(dish) ? 'checked' : ''}>
+              <span>${dish}</span>
+            </label>
+          `).join('')}
+        </div>
+        <button class="remove-allergy-btn" data-index="${index}">削除</button>
+      `;
+      return item;
+    }
+    
+    function refreshList() {
+      list.innerHTML = '';
+      allergies.forEach((allergy, index) => {
+        list.appendChild(renderAllergyItem(allergy, index));
+      });
+      
+      // 削除ボタンのイベント
+      list.querySelectorAll('.remove-allergy-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const index = parseInt(btn.dataset.index);
+          allergies.splice(index, 1);
+          refreshList();
+        });
+      });
+    }
+    
+    refreshList();
+    
+    // 追加ボタン
+    popup.querySelector('#add-allergy-popup-btn').addEventListener('click', () => {
+      allergies.push({ name: '', targets: [] });
+      refreshList();
+    });
+    
+    // 保存ボタン
+    popup.querySelector('#save-allergy-popup-btn').addEventListener('click', () => {
+      const items = list.querySelectorAll('.allergy-item');
+      const newAllergies = [];
+      
+      items.forEach(item => {
+        const name = item.querySelector('.allergy-name').value.trim();
+        if (name) {
+          const targets = Array.from(item.querySelectorAll('.dish-checkboxes input:checked'))
+            .map(cb => cb.value);
+          newAllergies.push({ name, targets });
+        }
+      });
+      
+      roomAllergies[roomId] = newAllergies;
+      updateAllergyDisplay(roomId);
+      document.body.removeChild(popup);
+    });
+    
+    // キャンセルボタン
+    popup.querySelector('#cancel-allergy-popup-btn').addEventListener('click', () => {
+      document.body.removeChild(popup);
+    });
+  }
+  
+  function updateAllergyDisplay(roomId) {
+    const displayEl = document.getElementById(`allergy-list-${roomId}`);
+    if (!displayEl) return;
+    
+    const allergies = roomAllergies[roomId] || [];
+    if (allergies.length === 0) {
+      displayEl.innerHTML = '<span style="color:#999;font-size:12px;">未設定</span>';
+    } else {
+      displayEl.innerHTML = allergies.map(a => {
+        const targets = a.targets.length > 0 ? ` (${a.targets.join('・')})` : '';
+        return `<span class="tag warn" style="font-size:11px;margin:2px;">${a.name}${targets}</span>`;
+      }).join('');
+    }
+  }
 
   // --- 行を描画 ---
   const wrap = document.getElementById('room-rows');
   if (!wrap) {
-    console.error('room-rows が見つかりません。HTMLに <div id="room-rows"></div> があるか確認してください。');
+    console.error('room-rows が見つかりません。');
     return;
   }
 
@@ -193,11 +488,25 @@ const PLANS = ["スタンダード", "和牛懐石", "ステーキ", "しゃぶ�
         <label style="display:inline-flex;gap:6px;align-items:center;margin-right:8px;">
           <input type="checkbox" id="plate-${idx}">プレート
         </label>
-        <input type="text" id="allergy-${idx}" placeholder="アレルギー（任意）" style="margin-top:8px;width:100%">
+        <button class="btn" id="allergy-btn-${idx}" style="margin-top:8px;font-size:12px;padding:6px 10px;">アレルギー詳細設定</button>
+        <div id="allergy-list-${idx}" style="margin-top:8px;"></div>
       </div>
     `;
     wrap.appendChild(row);
+    
+    // アレルギー設定ボタン
+    row.querySelector(`#allergy-btn-${idx}`).addEventListener('click', () => {
+      showAllergyPopup(`room-${idx}`, roomAllergies[`room-${idx}`] || []);
+    });
+    
+    updateAllergyDisplay(`room-${idx}`);
   });
+  
+  // カスタム部屋のアレルギー設定
+  document.getElementById('custom-allergy-btn').addEventListener('click', () => {
+    showAllergyPopup('custom', roomAllergies['custom'] || []);
+  });
+  updateAllergyDisplay('custom');
 
   // データ収集関数
   function collectRows(){
@@ -209,9 +518,10 @@ const PLANS = ["スタンダード", "和牛懐石", "ステーキ", "しゃぶ�
       const dinner = document.getElementById(`dinner-${idx}`).value || "";
       const cake = document.getElementById(`cake-${idx}`).checked;
       const plate = document.getElementById(`plate-${idx}`).checked;
-      const allergy = document.getElementById(`allergy-${idx}`).value || "";
+      const allergies = roomAllergies[`room-${idx}`] || [];
+      
       if (enabled) {
-        items.push({ name, guest, plan, dinner, cake, plate, allergy });
+        items.push({ name, guest, plan, dinner, cake, plate, allergies });
       }
     });
 
@@ -235,18 +545,37 @@ const PLANS = ["スタンダード", "和牛懐石", "ステーキ", "しゃぶ�
           dinner: document.getElementById('custom-dinner').value || "",
           cake: document.getElementById('custom-cake').checked,
           plate: document.getElementById('custom-plate').checked,
-          allergy: document.getElementById('custom-allergy').value || ""
+          allergies: roomAllergies['custom'] || []
         });
       }
     }
     return items;
   }
+  
+  // スタッフ情報収集
+  function collectStaff() {
+    const checkboxes = document.querySelectorAll('#staff-checkboxes input[type="checkbox"]:checked');
+    const staff = Array.from(checkboxes).map(cb => cb.value);
+    
+    const customStaff = document.getElementById('custom-staff-name').value.trim();
+    if (customStaff) {
+      staff.push(customStaff);
+    }
+    
+    return {
+      staff: staff,
+      customStaff: customStaff
+    };
+  }
 
   // 保存関数
   function saveSettings() {
+    const staffData = collectStaff();
     const payload = {
-      date: new Date().toISOString().slice(0,10), // YYYY-MM-DD
-      rooms: collectRows()
+      date: new Date().toISOString().slice(0,10),
+      rooms: collectRows(),
+      staff: staffData.staff,
+      customStaff: staffData.customStaff
     };
     localStorage.setItem('today-settings.v1', JSON.stringify(payload));
   }
@@ -256,7 +585,7 @@ const PLANS = ["スタンダード", "和牛懐石", "ステーキ", "しゃぶ�
   if (saveAndBoardBtn){
     saveAndBoardBtn.addEventListener('click', () => {
       saveSettings();
-      alert('保存しました！発注ボードへ移動します。');
+      alert('保存しました!発注ボードへ移動します。');
       location.href = './index.html?nocache=' + Date.now();
     });
   }
@@ -266,7 +595,7 @@ const PLANS = ["スタンダード", "和牛懐石", "ステーキ", "しゃぶ�
   if (saveOnlyBtn){
     saveOnlyBtn.addEventListener('click', () => {
       saveSettings();
-      alert('保存しました！');
+      alert('保存しました!');
     });
   }
 
@@ -277,38 +606,56 @@ const PLANS = ["スタンダード", "和牛懐石", "ステーキ", "しゃぶ�
       if (!raw) return;
       
       const data = JSON.parse(raw);
-      if (!data || !Array.isArray(data.rooms)) return;
-
-      // 各部屋の設定を復元
-      data.rooms.forEach(room => {
-        const idx = ROOMS.indexOf(room.name);
-        if (idx !== -1) {
-          // 固定部屋の場合
-          document.getElementById(`use-${idx}`).checked = true;
-          if (room.guest) document.getElementById(`guest-${idx}`).value = room.guest;
-          if (room.plan) document.getElementById(`plan-${idx}`).value = room.plan;
-          if (room.dinner) document.getElementById(`dinner-${idx}`).value = room.dinner;
-          if (room.cake) document.getElementById(`cake-${idx}`).checked = true;
-          if (room.plate) document.getElementById(`plate-${idx}`).checked = true;
-          if (room.allergy) document.getElementById(`allergy-${idx}`).value = room.allergy;
-        } else {
-          // カスタム部屋の場合
-          document.getElementById('use-custom').checked = true;
-          document.getElementById('custom-room-name').value = room.name;
-          if (room.guest <= 6) {
-            document.getElementById('custom-guest').value = room.guest;
+      if (!data) return;
+      
+      // スタッフ設定の復元
+      if (data.staff) {
+        document.querySelectorAll('#staff-checkboxes input[type="checkbox"]').forEach(cb => {
+          cb.checked = data.staff.includes(cb.value);
+        });
+      }
+      if (data.customStaff) {
+        document.getElementById('custom-staff-name').value = data.customStaff;
+      }
+      
+      // 部屋設定の復元
+      if (Array.isArray(data.rooms)) {
+        data.rooms.forEach(room => {
+          const idx = ROOMS.indexOf(room.name);
+          if (idx !== -1) {
+            // 固定部屋の場合
+            document.getElementById(`use-${idx}`).checked = true;
+            if (room.guest) document.getElementById(`guest-${idx}`).value = room.guest;
+            if (room.plan) document.getElementById(`plan-${idx}`).value = room.plan;
+            if (room.dinner) document.getElementById(`dinner-${idx}`).value = room.dinner;
+            if (room.cake) document.getElementById(`cake-${idx}`).checked = true;
+            if (room.plate) document.getElementById(`plate-${idx}`).checked = true;
+            if (room.allergies) {
+              roomAllergies[`room-${idx}`] = room.allergies;
+              updateAllergyDisplay(`room-${idx}`);
+            }
           } else {
-            document.getElementById('custom-guest').value = 'custom';
-            document.getElementById('custom-guestNum').style.display = 'inline-block';
-            document.getElementById('custom-guestNum').value = room.guest;
+            // カスタム部屋の場合
+            document.getElementById('use-custom').checked = true;
+            document.getElementById('custom-room-name').value = room.name;
+            if (room.guest <= 6 && room.guest > 0) {
+              document.getElementById('custom-guest').value = room.guest;
+            } else if (room.guest > 6) {
+              document.getElementById('custom-guest').value = 'custom';
+              document.getElementById('custom-guestNum').style.display = 'inline-block';
+              document.getElementById('custom-guestNum').value = room.guest;
+            }
+            if (room.plan) document.getElementById('custom-plan').value = room.plan;
+            if (room.dinner) document.getElementById('custom-dinner').value = room.dinner;
+            if (room.cake) document.getElementById('custom-cake').checked = true;
+            if (room.plate) document.getElementById('custom-plate').checked = true;
+            if (room.allergies) {
+              roomAllergies['custom'] = room.allergies;
+              updateAllergyDisplay('custom');
+            }
           }
-          if (room.plan) document.getElementById('custom-plan').value = room.plan;
-          if (room.dinner) document.getElementById('custom-dinner').value = room.dinner;
-          if (room.cake) document.getElementById('custom-cake').checked = true;
-          if (room.plate) document.getElementById('custom-plate').checked = true;
-          if (room.allergy) document.getElementById('custom-allergy').value = room.allergy;
-        }
-      });
+        });
+      }
     } catch(e) {
       console.error('設定の読み込みに失敗しました', e);
     }

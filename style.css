@@ -26,24 +26,94 @@ button { cursor: pointer; }
 .badges { display: flex; gap: 6px; margin-top: 4px; }
 .badge { font-size: 12px; padding: 2px 6px; border-radius: 999px; background: #eef; }
 
+/* === 丸ボタン:基本スタイル === */
 .dotbtn {
-  width: 32px; height: 32px; border-radius: 50%;
-  border: 1px solid #ccc; background: #fff; cursor: pointer;
+  width: 40px; 
+  height: 40px; 
+  border-radius: 50%;
+  border: 2px solid #ccc; 
+  background: #fff; 
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  color: #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  user-select: none;
 }
-.dotbtn.is-on { background: #8fd; border-color: #5ab; }
-/* 丸ボタン直下の小さな「未」を非表示にする */
+
+/* === 状態ごとの色分け（未→待→注→済） === */
+
+/* 未:白背景、グレーの枠 */
+.dotbtn[data-state="未"],
+.dotbtn:not([data-state]) {
+  background: #fff;
+  border-color: #bdbdbd;
+  color: #999;
+}
+
+/* 待:黄色背景（準備完了、待機中） */
+.dotbtn[data-state="待"] {
+  background: #ffd54f;
+  border-color: #ffc107;
+  color: #333;
+}
+
+/* 注:青背景（注文済み、作業中） */
+.dotbtn[data-state="注"] {
+  background: #42a5f5;
+  border-color: #1e88e5;
+  color: #fff;
+}
+
+/* 済:緑背景（提供済み、完了） */
+.dotbtn[data-state="済"] {
+  background: #66bb6a;
+  border-color: #4caf50;
+  color: #fff;
+}
+
+/* ホバー時の効果 */
+.dotbtn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+/* 古い状態名（準備・発注・提供）との互換性（念のため） */
+.dotbtn[data-state="準備"] {
+  background: #ffd54f;
+  border-color: #ffc107;
+  color: #333;
+}
+
+.dotbtn[data-state="発注"] {
+  background: #42a5f5;
+  border-color: #1e88e5;
+  color: #fff;
+}
+
+.dotbtn[data-state="提供"] {
+  background: #66bb6a;
+  border-color: #4caf50;
+  color: #fff;
+}
+
+/* 丸ボタン直下のラベルを非表示にする */
 .dotlabel { display: none !important; }
-.cell { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+
+.cell { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+
 /* 各セルの上に出す料理名（部屋ごとに変えられる） */
 .dishname {
   font-size: 12px;
   line-height: 1.2;
-  min-height: 28px;   /* 2行まで並んでも高さが揃う */
+  min-height: 18px;
   text-align: center;
   word-break: keep-all;
   overflow-wrap: anywhere;
 }
-.cell { gap: 4px; }   /* 文字と丸の間を少し広げる */
 
 /* 小タグ（人数/プラン/アレルギー/デザート） */
 .tag {
@@ -58,41 +128,8 @@ button { cursor: pointer; }
 .status-row-top {
   display: none;
 }
-/* === 丸ボタン：状態ごとの色分け === */
-.dotbtn[data-state="準備"] {
-  background: #4caf50;   /* 緑 */
-  border-color: #4caf50;
-}
 
-.dotbtn[data-state="発注"] {
-  background: #1e88e5;   /* 青 */
-  border-color: #1e88e5;
-}
-
-.dotbtn[data-state="提供"] {
-  background: #ff9800;   /* オレンジ */
-  border-color: #ff9800;
-}
-
-/* 未定は薄いグレーの枠だけ（中は白） */
-.dotbtn[data-state="未定"],
-.dotbtn:not([data-state]) {
-  background: #fff;
-  border-color: #bdbdbd;
-}
 /* プラン名の小タグ（丸ボタンの右に出す） */
-.plan-tag{
-  display:inline-block;
-  margin-left:6px;
-  padding:1px 6px;
-  font-size:11px;
-  line-height:1.6;
-  border:1px solid #ddd;
-  border-radius:10px;
-  color:#555;
-  white-space:nowrap;
-}
-/* === 丸ボタン右のプラン名タグ === */
 .plan-tag{
   display: inline-block;
   margin-left: 6px;
@@ -109,4 +146,192 @@ button { cursor: pointer; }
 /* ボタンの並びを崩さないための念のため */
 .cell .dotbtn + .plan-tag{
   margin-left: 8px;
+}
+
+/* === 人数タグ（大きく表示） === */
+.guest-tag {
+  display: inline-block;
+  font-size: 18px;
+  font-weight: bold;
+  padding: 4px 12px;
+  margin-right: 8px;
+  border-radius: 6px;
+}
+
+/* === 食事スピードセレクター === */
+.speed-selector {
+  font-size: 12px;
+  padding: 4px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  max-width: 140px;
+}
+
+.speed-wrap {
+  margin-top: 6px;
+}
+
+/* === スタッフ選択ポップアップ === */
+.staff-popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.staff-popup {
+  background: #fff;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  max-width: 400px;
+  width: 90%;
+}
+
+.staff-popup h3 {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  text-align: center;
+}
+
+.staff-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.staff-btn {
+  padding: 12px 16px;
+  font-size: 14px;
+  border: 2px solid #1976d2;
+  background: #fff;
+  color: #1976d2;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.staff-btn:hover {
+  background: #1976d2;
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3);
+}
+
+.staff-cancel {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  background: #f5f5f5;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.staff-cancel:hover {
+  background: #e0e0e0;
+}
+
+/* === ウェルダン選択ポップアップ === */
+.welldone-popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.welldone-popup {
+  background: #fff;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  max-width: 400px;
+  width: 90%;
+}
+
+.welldone-popup h3 {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  text-align: center;
+}
+
+.welldone-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.welldone-btn {
+  padding: 12px 16px;
+  font-size: 14px;
+  border: 2px solid #d32f2f;
+  background: #fff;
+  color: #d32f2f;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.welldone-btn:hover {
+  background: #d32f2f;
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(211, 47, 47, 0.3);
+}
+
+.welldone-cancel {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  background: #f5f5f5;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.welldone-cancel:hover {
+  background: #e0e0e0;
+}
+
+/* === ウェルダン・スタッフ表示 === */
+.welldone-display {
+  font-size: 10px;
+  margin-top: 2px;
+  color: #d32f2f;
+  font-weight: bold;
+}
+
+.staff-display {
+  font-size: 10px;
+  margin-top: 2px;
+  color: #1976d2;
+  font-weight: bold;
+}
+
+/* === 時間グループヘッダー === */
+.time-group {
+  margin-bottom: 16px;
+}
+
+.time-group-header {
+  margin: 8px 0 12px 0;
+  font-size: 14px;
+  color: #999;
+  font-weight: normal;
 }
