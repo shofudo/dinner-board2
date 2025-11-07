@@ -47,7 +47,8 @@ function ensureStateV3(state, groupId, roomId, colIdx){
   if(typeof state[groupId][roomId][colIdx] !== "string"){
     state[groupId][roomId][colIdx] = "未";
   }
-  // === 本日データ：丸ボタン状態だけをリセット ===
+}
+// === 本日データ：丸ボタン状態だけをリセット ===
 function resetBoardStatesToPendingV3(){
   const state = loadBoardV3() || {};
   const DISH_KEYS = ["吸物","刺身","蒸物","揚物","煮物","飯","甘味"];
@@ -62,13 +63,16 @@ function resetBoardStatesToPendingV3(){
   }
   saveBoardV3(state);
   renderBoardV3(state);
-}
-
+  return state;
 }
 
 window.loadBoardV3  = loadBoardV3;
 window.saveBoardV3  = saveBoardV3;
 window.ensureStateV3 = ensureStateV3;
+window.renderBoardV3 = renderBoardV3;
+window.resetBoardStatesToPendingV3 = resetBoardStatesToPendingV3; // ★追加
+
+
 
   const GROUPS = [
     {
@@ -148,7 +152,7 @@ window.ensureStateV3 = ensureStateV3;
       </div>`;
   }
 
-  function renderBoards(){
+  function renderBoardV3(){
     const container = document.getElementById("boards");
     const state = loadBoard();
     container.innerHTML = GROUPS.map(g => renderGroup(g, state)).join("");
@@ -178,12 +182,12 @@ document.getElementById("btn-reset-today")?.addEventListener("click", ()=>{   //
       localStorage.removeItem(KEY_BOARD_V3); //
       localStorage.removeItem(`board-state.v1:${new Date().toISOString().slice(0,10)}`);
 
-      renderBoards();
+      renderBoardV3();
     }
   });
 
   // 初期表示
-  renderBoards();
+  renderBoardV3();
 })(); // まとまり終わり
 // ==============================
 // 本日の設定（today-settings.v1）→ 発注ボード反映（統一版）
@@ -319,77 +323,31 @@ timeLine.textContent = hhmm(new Date());
 
   // 初期実行
   document.addEventListener('DOMContentLoaded', () => {
-    const data = loadSettings();
-    if(data) renderFromSettings(data);
+
+const data = loadSettings();
+if (data) {
+  renderFromSettings(data);   // ← 設定データから描画
+} else {
+  renderBoardV3();            // ← 設定が無いときの予備表示
+}
+
   const resetBtn = document.getElementById("btn-reset-today");
   if(resetBtn){
-    resetBtn.addEventListener("click", () => {
-      if(!confirm("本日の丸の状態をすべて『未』に戻します。よろしいですか？")) return;
-      resetBoardStatesToPendingV3();
-    });
+  resetBtn.addEventListener("click", () => {
+  if (!confirm("本日の丸の状態をすべて『未』に戻します。よろしいですか？")) return;
+
+  const state = resetBoardStatesToPendingV3(); // ← 戻り値を受け取る
+  renderBoardV3(state);                        // ← 再描画
+  saveBoardV3(state);                          // ← 保存
+});
+
   }
 
 
   });
 })();
-/* ===== 丸ボタン： 未 → 時間 → 発注 → 提供 のループ ===== */
+/* ===== 丸ボタン： 準備 → 発注 → 提供 → 未定 のループ ===== */
 
-
-// 状態を次へ進める
-function nextState(cur){
-  if (cur === "未") return "時間";     // 次は「時間」（クリックした瞬間の時刻）
-  if (cur && /^\d{2}:\d{2}$/.test(cur)) return "発注"; // 「時間」の次は「発注」
-  if (cur === "発注") return "提供";   // 次は「提供」
-  return "未";                        // それ以外（提供の次など）は「未」に戻す
-}
-
-// クリックされた“丸”の近くに小さな表示（タグ）を作る/更新する
-function showStateTag(target, text){
-  // 同じセル(または近い要素)の中に既存タグがあれば再利用、なければ作成
-  let holder = target.closest("td, div, li, section") || target.parentElement;
-  if (!holder) holder = target; // 念のため
-
-  let tag = holder.querySelector(".state-tag");
-  if (!tag){
-    tag = document.createElement("div");
-    tag.className = "state-tag";
-    // 丸の直後に入れたいので、同じ入れ物の末尾に付ける
-    holder.appendChild(tag);
-  }
-  tag.textContent = text;
-}
-
-// 丸っぽい要素の共通セレクタ（ボタンでもdivでも拾えるように広めに指定）
-function isCircleLike(el){
-  // 既存のクラス名が分からないので、丸に使われがちな候補を広めに
-  const cls = (el.className || "") + "";
-  return (
-    el.tagName === "BUTTON" ||
-    cls.includes("dot") || cls.includes("circle") || cls.includes("phase") || cls.includes("status")
-  );
-}
-
-// boards 領域で“イベント委譲”しておく（後から増える丸にも効く）
-const boardsRoot = document.getElementById("boards") || document;
-boardsRoot.addEventListener("click", (e) => {
-  const t = e.target.closest("button, div, span");
-  if(!t || !isCircleLike(t)) return;
-
-  // 現在の状態を読む（data-state に持たせる）
-  let cur = t.dataset.state || "未";
-  // 次の状態へ
-  let nxt = nextState(cur);
-  if (nxt === "時間") nxt = hhmm(new Date()); // 「時間」のときは現在時刻を入れる
-
-  // 保存（このページを見ている間だけの簡易保存）
-  t.dataset.state = nxt;
-  t.setAttribute("aria-label", `状態: ${nxt}`);
-  t.title = `状態: ${nxt}`;
-
-  // 画面に小さく表示（丸の近くに出る）
-  showStateTag(t, nxt);
-});
-/* サイクル順 */
 const CYCLE = ["準備","発注","提供","未定"];
 function nextState(cur){
   const i = CYCLE.indexOf(cur);
@@ -420,7 +378,7 @@ function ensureDisplayLines(cell){
 
 /* クリック（委任）… テーブルがJSで後から描画でもOK */
 document.addEventListener('click', (ev)=>{
-  const btn = ev.target.closest('.dot, .circle, .round, .btn-round');
+const btn = ev.target.closest('.dotbtn');
   if(!btn) return;
 
   const cell = btn.closest('td') || btn.parentElement;
