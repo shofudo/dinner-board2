@@ -73,13 +73,13 @@ button { cursor: pointer; }
 
 /* === 丸ボタン:基本スタイル === */
 .dotbtn {
-  width: 40px; 
-  height: 40px; 
+  width: 36px; 
+  height: 36px; 
   border-radius: 50%;
   border: 2px solid #ccc; 
   background: #fff; 
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: bold;
   color: #333;
   display: flex;
@@ -91,13 +91,13 @@ button { cursor: pointer; }
 
 /* === 四角ボタン:追加料理用（丸ボタンと区別） === */
 .squarebtn {
-  width: 40px; 
-  height: 40px; 
+  width: 36px; 
+  height: 36px; 
   border-radius: 8px; /* 四角形にするため角を少し丸める */
   border: 3px solid #ccc; /* 視認性向上のため太めの枠 */
   background: #fff; 
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: bold;
   color: #333;
   display: flex;
@@ -204,13 +204,13 @@ button { cursor: pointer; }
 /* 丸ボタン直下のラベルを非表示にする */
 .dotlabel { display: none !important; }
 
-.cell { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.cell { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 
 /* 各セルの上に出す料理名（部屋ごとに変えられる） */
 .dishname {
-  font-size: 11px; /* ▼ 12pxから11pxに少し小さく */
-  line-height: 1.2;
-  min-height: 16px; /* ▼ 18pxから16pxに削減 */
+  font-size: 10px; /* ▼ 11pxから10pxにさらに削減 */
+  line-height: 1.1;
+  min-height: 12px; /* ▼ 16pxから12pxに削減 */
   text-align: center;
   word-break: keep-all;
   overflow-wrap: anywhere;
@@ -218,9 +218,9 @@ button { cursor: pointer; }
 
 /* 小タグ（人数/プラン/アレルギー/デザート） */
 .tag {
-  display:inline-block; font-size:12px; line-height:1;
-  padding:2px 6px; border:1px solid #d8d8d8; border-radius:999px;
-  background:#f6f7fb; margin-left:6px; white-space:nowrap;
+  display:inline-block; font-size:11px; line-height:1;
+  padding:2px 5px; border:1px solid #d8d8d8; border-radius:999px;
+  background:#f6f7fb; margin-left:4px; white-space:nowrap;
 }
 .tag.warn { background:#fff2f2; border-color:#f0b5b5; }   /* アレルギー用 */
 .tag.note { background:#f7fff2; border-color:#cfe7b5; }   /* 甘味タグ用 */
@@ -252,10 +252,10 @@ button { cursor: pointer; }
 /* === 人数タグ（大きく表示） === */
 .guest-tag {
   display: inline-block;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: bold;
-  padding: 4px 12px;
-  margin-right: 8px;
+  padding: 3px 10px;
+  margin-right: 6px;
   border-radius: 6px;
 }
 
@@ -427,19 +427,19 @@ button { cursor: pointer; }
 
 /* === 時間グループヘッダー === */
 .time-group {
-  margin-bottom: 12px; /* ▼ 16pxから12pxに削減 */
+  margin-bottom: 6px; /* ▼ 12pxから6pxにさらに削減 */
 }
 
 .time-group-header {
-  margin: 6px 0 10px 0; /* ▼ 上下の余白を少し削減 */
-  font-size: 14px;
+  margin: 4px 0 6px 0; /* ▼ 上下の余白をさらに削減 */
+  font-size: 13px;
   color: #999;
   font-weight: normal;
 }
 
 /* === 部屋行全体の余白も少し削減 === */
 .room-row {
-  margin-bottom: 8px; /* ▼ 部屋と部屋の間隔を少し詰める */
+  margin-bottom: 4px; /* ▼ 8pxから4pxに削減 */
 }
 
 /* === キッチン表示用スタイル === */

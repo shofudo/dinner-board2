@@ -377,27 +377,203 @@
     });
   }
 
-  // 食事スピード変更機能
+  // 待ち時間選択ポップアップ表示関数
+  function showWaitTimePopup(groupId, roomId, colIdx, callback) {
+    const popup = document.createElement('div');
+    popup.className = 'staff-popup-overlay'; // スタッフポップアップと同じスタイルを使用
+    popup.innerHTML = `
+      <div class="staff-popup">
+        <h3>待ち時間を選択</h3>
+        <div class="staff-list">
+          <button class="staff-btn" data-minutes="5">+5分</button>
+          <button class="staff-btn" data-minutes="10">+10分</button>
+          <button class="staff-btn" data-minutes="15">+15分</button>
+          <button class="staff-btn" data-minutes="20">+20分</button>
+          <button class="staff-btn" data-minutes="25">+25分</button>
+          <button class="staff-btn" data-minutes="30">+30分</button>
+          <button class="staff-btn" data-minutes="voice">声がけ</button>
+        </div>
+        <button class="staff-cancel">キャンセル</button>
+      </div>
+    `;
+
+    document.body.appendChild(popup);
+
+    popup.querySelectorAll('.staff-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const minutes = btn.dataset.minutes;
+        callback(minutes);
+        document.body.removeChild(popup);
+      });
+    });
+
+    popup.querySelector('.staff-cancel').addEventListener('click', () => {
+      callback(null);
+      document.body.removeChild(popup);
+    });
+  }
+
+  // 選択した待ち時間から表示時刻を計算する関数
+  function calculateWaitTime(minutes) {
+    if (minutes === 'voice') {
+      return '声がけ';
+    }
+    
+    const now = new Date();
+    const targetTime = new Date(now.getTime() + parseInt(minutes) * 60000);
+    return hhmm(targetTime);
+  }
+
+  // 食事スピード選択ポップアップ表示関数
+  function showSpeedPopup(groupId, roomId, callback) {
+    // 7段階のスピード設定（VF: Very Fast, F: Fast, LF: Little Fast, N: Normal, LS: Little Slow, S: Slow, VS: Very Slow）
+    const speeds = [
+      { value: 'VF', label: 'VF (とても早い)', color: '#d32f2f' },
+      { value: 'F', label: 'F (早い)', color: '#e57373' },
+      { value: 'LF', label: 'LF (少し早い)', color: '#ffb74d' },
+      { value: 'N', label: 'N (普通)', color: '#ffffff' },
+      { value: 'LS', label: 'LS (少し遅い)', color: '#81d4fa' },
+      { value: 'S', label: 'S (遅い)', color: '#64b5f6' },
+      { value: 'VS', label: 'VS (とても遅い)', color: '#42a5f5' }
+    ];
+
+    const popup = document.createElement('div');
+    popup.className = 'staff-popup-overlay';
+    popup.innerHTML = `
+      <div class="staff-popup">
+        <h3>食事スピードを選択</h3>
+        <div class="staff-list" style="grid-template-columns: 1fr;">
+          ${speeds.map(speed => `
+            <button class="staff-btn speed-btn" data-speed="${speed.value}" 
+                    style="background: ${speed.color}; border-color: ${speed.value === 'N' ? '#ccc' : speed.color}; 
+                           color: ${['VF', 'F', 'S', 'VS'].includes(speed.value) ? '#fff' : '#333'};">
+              ${speed.label}
+            </button>
+          `).join('')}
+        </div>
+        <button class="staff-cancel">キャンセル</button>
+      </div>
+    `;
+
+    document.body.appendChild(popup);
+
+    popup.querySelectorAll('.speed-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const speed = btn.dataset.speed;
+        callback(speed);
+        document.body.removeChild(popup);
+      });
+    });
+
+    popup.querySelector('.staff-cancel').addEventListener('click', () => {
+      document.body.removeChild(popup);
+    });
+  }
+
+  // 食事スピード変更機能（ポップアップ形式）
   function createSpeedSelector(groupId, roomId) {
-    const speeds = ['とてもはやい', 'はやい', '普通', 'おそい', 'とてもおそい'];
     const storageKey = `speed-${groupId}-${roomId}`;
-    const saved = localStorage.getItem(storageKey) || '普通';
+    const saved = localStorage.getItem(storageKey) || 'N';
 
-    const selector = document.createElement('select');
-    selector.className = 'speed-selector';
-    speeds.forEach(speed => {
-      const option = document.createElement('option');
-      option.value = speed;
-      option.textContent = speed;
-      if (speed === saved) option.selected = true;
-      selector.appendChild(option);
+    // スピードと色のマッピング
+    const speedColors = {
+      'VF': { bg: '#d32f2f', text: '#fff', border: '#d32f2f' },
+      'F': { bg: '#e57373', text: '#fff', border: '#e57373' },
+      'LF': { bg: '#ffb74d', text: '#333', border: '#ffb74d' },
+      'N': { bg: '#ffffff', text: '#333', border: '#ccc' },
+      'LS': { bg: '#81d4fa', text: '#333', border: '#81d4fa' },
+      'S': { bg: '#64b5f6', text: '#fff', border: '#64b5f6' },
+      'VS': { bg: '#42a5f5', text: '#fff', border: '#42a5f5' }
+    };
+
+    const container = document.createElement('div');
+    container.className = 'speed-selector-container';
+    container.style.cssText = 'margin-top: 6px;';
+
+    const button = document.createElement('button');
+    button.className = 'speed-display-btn';
+    const currentColor = speedColors[saved] || speedColors['N'];
+    button.style.cssText = `
+      font-size: 13px;
+      padding: 6px 16px;
+      border: 2px solid ${currentColor.border};
+      border-radius: 6px;
+      background: ${currentColor.bg};
+      color: ${currentColor.text};
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.2s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    `;
+    button.textContent = saved;
+
+    button.addEventListener('mouseenter', () => {
+      button.style.transform = 'translateY(-2px)';
+      button.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
     });
 
-    selector.addEventListener('change', () => {
-      localStorage.setItem(storageKey, selector.value);
+    button.addEventListener('mouseleave', () => {
+      button.style.transform = 'translateY(0)';
+      button.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
     });
 
-    return selector;
+    button.addEventListener('click', () => {
+      showSpeedPopup(groupId, roomId, (newSpeed) => {
+        localStorage.setItem(storageKey, newSpeed);
+        const newColor = speedColors[newSpeed] || speedColors['N'];
+        button.style.background = newColor.bg;
+        button.style.color = newColor.text;
+        button.style.borderColor = newColor.border;
+        button.textContent = newSpeed;
+      });
+    });
+
+    container.appendChild(button);
+    return container;
+  }
+
+  // メモ入力欄を作成する関数
+  function createMemoInput(groupId, roomId) {
+    const storageKey = `memo-${groupId}-${roomId}`;
+    const saved = localStorage.getItem(storageKey) || '';
+
+    const container = document.createElement('div');
+    container.className = 'memo-input-container';
+    container.style.cssText = 'display:inline-flex;align-items:center;';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.maxLength = 10;
+    input.value = saved;
+    input.placeholder = '※メモ';
+    input.style.cssText = `
+      font-size: 12px;
+      padding: 4px 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background: #fff;
+      width: 120px;
+      transition: all 0.2s;
+    `;
+
+    // フォーカス時のスタイル
+    input.addEventListener('focus', () => {
+      input.style.borderColor = '#667eea';
+      input.style.boxShadow = '0 0 0 2px rgba(102, 126, 234, 0.2)';
+    });
+
+    input.addEventListener('blur', () => {
+      input.style.borderColor = '#ddd';
+      input.style.boxShadow = 'none';
+    });
+
+    // 入力内容を保存
+    input.addEventListener('input', () => {
+      localStorage.setItem(storageKey, input.value);
+    });
+
+    container.appendChild(input);
+    return container;
   }
 
   function renderFromSettings(data){
@@ -451,18 +627,18 @@
 
     const groupHtml = (time, list, isLast) => {
       return `
-        <div class="time-group" style="border-bottom: ${isLast ? 'none' : '2px solid #e0e0e0'}; padding-bottom: 16px; margin-bottom: ${isLast ? '0' : '16px'};">
-          <h2 class="time-group-header" style="margin:8px 0 12px 0; font-size:14px; color:#999; font-weight:normal;">${time}</h2>
+        <div class="time-group" style="border-bottom: ${isLast ? 'none' : '1px solid #e0e0e0'}; padding-bottom: 8px; margin-bottom: ${isLast ? '0' : '8px'};">
+          <h2 class="time-group-header" style="margin:4px 0 6px 0; font-size:13px; color:#999; font-weight:normal;">${time}</h2>
           <div class="table like">
             ${list.map(r=>{
               const planBg = planColors[r.plan] || '#f5f5f5';
               const tagColor = planTagColors[r.plan] || { bg: '#757575', color: '#fff' };
               
               // 人数タグを大きく表示
-              const guestTag = r.guest ? `<span class="guest-tag" style="display:inline-block; font-size:18px; font-weight:bold; padding:4px 12px; margin-right:8px; background:${tagColor.bg}; color:${tagColor.color}; border-radius:6px;">${r.guest}名</span>` : "";
+              const guestTag = r.guest ? `<span class="guest-tag" style="display:inline-block; font-size:16px; font-weight:bold; padding:3px 10px; background:${tagColor.bg}; color:${tagColor.color}; border-radius:6px;">${r.guest}名</span>` : "";
               
               // プランタグ
-              const planTag = r.plan ? `<span class="plan-tag" style="display:inline-block; font-size:13px; padding:3px 10px; margin-right:6px; background:${tagColor.bg}; color:${tagColor.color}; border-radius:4px;">${esc(r.plan)}</span>` : "";
+              const planTag = r.plan ? `<span class="plan-tag" style="display:inline-block; font-size:11px; padding:2px 8px; background:${tagColor.bg}; color:${tagColor.color}; border-radius:4px;">${esc(r.plan)}</span>` : "";
 
               // プランごとの料理名を取得
               const baseDishes = r.plan && planDishNames[r.plan] ? planDishNames[r.plan] : ["吸物","刺身","蒸物","揚物","煮物","飯","甘味"];
@@ -479,23 +655,31 @@
               // ケーキ・プレート表示
               let sweetTag = '';
               if (r.plan && (r.cake || r.plate)) {
-                sweetTag = `<div style="margin-top:4px;"><span class="tag note" style="font-size:11px;">${[r.cake?"ケーキ":null, r.plate?"プレート":null].filter(Boolean).join("・")}</span></div>`;
+                sweetTag = `<span class="tag note" style="font-size:11px; margin-left:6px;">${[r.cake?"ケーキ":null, r.plate?"プレート":null].filter(Boolean).join("・")}</span>`;
               }
 
-              // 食事スピードセレクター
-              const speedSelector = `<div class="speed-wrap" style="margin-top:6px;"></div>`;
+              // 食事スピードセレクター（プレースホルダー）
+              const speedSelector = `<div class="speed-wrap"></div>`;
+              
+              // メモ欄（プレースホルダー）
+              const memoArea = `<div class="memo-wrap"></div>`;
 
               // グリッド列数を動的に調整（240px + 料理数×1fr）
               const gridColumns = `240px repeat(${dishNames.length},1fr)`;
 
               return `
-                <div class="room-row" data-plan="${esc(r.plan||'')}" style="display:grid;grid-template-columns:${gridColumns};gap:8px;align-items:center;padding:12px 10px;border-bottom:1px dashed #eee;background:${planBg};">
+                <div class="room-row" data-plan="${esc(r.plan||'')}" data-room-name="${esc(r.name)}" data-time-group="${time}" style="display:grid;grid-template-columns:${gridColumns};gap:6px;align-items:center;padding:6px 8px;border-bottom:1px dashed #eee;background:${planBg};">
                   <div>
-                    <div style="margin-bottom:8px;">
-                      ${guestTag}${planTag}
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                      ${speedSelector}
+                      <strong style="font-size:16px;">${esc(r.name)}</strong>
+                      ${guestTag}
                     </div>
-                    <div><strong style="font-size:15px;">${esc(r.name)}</strong></div>
-                    ${speedSelector}
+                    <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+                      ${planTag}
+                      ${sweetTag}
+                      ${memoArea}
+                    </div>
                   </div>
                   ${dishNames.map((dishName, idx) => {
                     const dishKey = dishName;
@@ -508,11 +692,11 @@
                         // 料理名のマッピング（本日の設定で使われる名称 → 実際の料理名）
                         const dishMapping = {
                           '吸物': '吸物',
-                          '果菜盛': '刺身',
+                          '果菜盛': '果菜盛',
                           '蒸物': '蒸物',
                           '揚物': '揚物',
                           '煮物': '煮物',
-                          '飯': '飯',
+                          '飯': 'ご飯',
                           '甘味': '甘味'
                         };
                         
@@ -537,7 +721,7 @@
                     
                     return `
                       <div class="cell" data-group="${time}" data-room="${esc(r.name)}" data-col="${idx}" data-dish="${esc(dishKey)}" data-extra="${isExtraDish}" style="text-align:center;">
-                        <div class="dishname" style="font-size:11px;min-height:18px;margin-bottom:4px;color:#666;">${dishName}</div>
+                        <div class="dishname" style="font-size:10px;min-height:12px;margin-bottom:2px;color:#666;">${dishName}</div>
                         <button class="${buttonClass}"></button>
                         ${allergyDisplay}
                         <div class="welldone-display" style="font-size:10px;margin-top:2px;color:#d32f2f;display:none;"></div>
@@ -563,14 +747,22 @@
     if(root && html.trim()){
       root.innerHTML = html;
 
-      // 食事スピードセレクターを各部屋に追加
+      // 食事スピードセレクターとメモ欄を各部屋に追加
       root.querySelectorAll('.room-row').forEach(row => {
         const speedWrap = row.querySelector('.speed-wrap');
-        if (speedWrap) {
-          const roomName = row.querySelector('strong').textContent;
-          const timeGroup = row.closest('.time-group').querySelector('.time-group-header').textContent;
+        const memoWrap = row.querySelector('.memo-wrap');
+        const roomName = row.dataset.roomName;
+        const timeGroup = row.dataset.timeGroup;
+        
+        if (speedWrap && roomName && timeGroup) {
           const selector = createSpeedSelector(timeGroup, roomName);
           speedWrap.appendChild(selector);
+        }
+        
+        // メモ欄を追加
+        if (memoWrap && roomName && timeGroup) {
+          const memoInput = createMemoInput(timeGroup, roomName);
+          memoWrap.appendChild(memoInput);
         }
       });
 
@@ -609,7 +801,48 @@
           staffDisplay.style.display = 'block';
         }
 
+        // 待ち時間情報の復元
+        if (!st[groupId][roomId].waitTime) {
+          st[groupId][roomId].waitTime = {};
+        }
+        const waitTimeMinutes = st[groupId][roomId].waitTime[colIdx];
+        
         const cur = st[groupId][roomId][colIdx];
+        
+        // 待ち時間表示を復元(「待」状態の場合)
+        if (cur === '待' && waitTimeMinutes) {
+          const cellEl = cell;
+          let timeLine = cellEl.querySelector('.js-time');
+          if (!timeLine) {
+            timeLine = document.createElement('div');
+            timeLine.className = 'js-time';
+            cellEl.appendChild(timeLine);
+          }
+          
+          const displayTime = calculateWaitTime(waitTimeMinutes);
+          timeLine.textContent = displayTime;
+          timeLine.style.fontSize = '16px';
+          timeLine.style.color = '#d32f2f';
+          timeLine.style.fontWeight = 'bold';
+          timeLine.style.marginTop = '4px';
+          timeLine.style.cursor = 'pointer';
+          
+          // クリックで再選択できるようにする
+          timeLine.onclick = (e) => {
+            e.stopPropagation();
+            showWaitTimePopup(groupId, roomId, colIdx, (minutes) => {
+              if (minutes !== null) {
+                const st = loadBoardV3();
+                if (!st[groupId][roomId].waitTime) st[groupId][roomId].waitTime = {};
+                st[groupId][roomId].waitTime[colIdx] = minutes;
+                saveBoardV3(st);
+                
+                const displayTime = calculateWaitTime(minutes);
+                timeLine.textContent = displayTime;
+              }
+            });
+          };
+        }
         
         // ボタン内に文字を表示
         btn.textContent = cur;
@@ -628,6 +861,28 @@
             // 3段階遷移: 未→待→済→未
             if (prev === "未") {
               next = "待";
+              // 待になったとき時間選択ポップアップを表示
+              showWaitTimePopup(groupId, roomId, colIdx, (minutes) => {
+                if (minutes !== null) {
+                  const st = loadBoardV3();
+                  if (!st[groupId][roomId].waitTime) st[groupId][roomId].waitTime = {};
+                  st[groupId][roomId].waitTime[colIdx] = minutes;
+                  saveBoardV3(st);
+                  
+                  // 時刻表示を更新
+                  const cellEl = btn.closest('td') || btn.parentElement;
+                  let timeLine = cellEl.querySelector('.js-time');
+                  if (timeLine) {
+                    const displayTime = calculateWaitTime(minutes);
+                    timeLine.textContent = displayTime;
+                    // 待の状態の時間表示を大きく赤色に
+                    timeLine.style.fontSize = '16px';
+                    timeLine.style.color = '#d32f2f';
+                    timeLine.style.fontWeight = 'bold';
+                    timeLine.style.marginTop = '4px';
+                  }
+                }
+              });
             } else if (prev === "待") {
               next = "済";
               // 済になったときスタッフ選択
@@ -643,11 +898,15 @@
               });
             } else {
               next = "未";
-              // 未に戻したらスタッフ情報削除
+              // 未に戻したらスタッフ情報と待ち時間削除
               const st = loadBoardV3();
               if (st[groupId][roomId].staff) {
                 delete st[groupId][roomId].staff[colIdx];
               }
+              if (st[groupId][roomId].waitTime) {
+                delete st[groupId][roomId].waitTime[colIdx];
+              }
+              saveBoardV3(st);
               if (staffDisplay) {
                 staffDisplay.textContent = '';
                 staffDisplay.style.display = 'none';
@@ -657,6 +916,30 @@
             // 4段階遷移: 未→待→注→済→未
             if (prev === "未") {
               next = "待";
+              
+              // 待になったとき時間選択ポップアップを表示
+              showWaitTimePopup(groupId, roomId, colIdx, (minutes) => {
+                if (minutes !== null) {
+                  const st = loadBoardV3();
+                  if (!st[groupId][roomId].waitTime) st[groupId][roomId].waitTime = {};
+                  st[groupId][roomId].waitTime[colIdx] = minutes;
+                  saveBoardV3(st);
+                  
+                  // 時刻表示を更新
+                  const cellEl = btn.closest('td') || btn.parentElement;
+                  let timeLine = cellEl.querySelector('.js-time');
+                  if (timeLine) {
+                    const displayTime = calculateWaitTime(minutes);
+                    timeLine.textContent = displayTime;
+                    // 待の状態の時間表示を大きく赤色に
+                    timeLine.style.fontSize = '16px';
+                    timeLine.style.color = '#d32f2f';
+                    timeLine.style.fontWeight = 'bold';
+                    timeLine.style.marginTop = '4px';
+                  }
+                }
+              });
+              
               // 煮物の場合、待になったときウェルダン選択
               if (dishName === '煮物' || dishName === 'ステーキ') {
                 showWelldonePopup(groupId, roomId, colIdx, (count) => {
@@ -689,7 +972,7 @@
               });
             } else {
               next = "未";
-              // 未に戻したらウェルダンとスタッフ情報削除
+              // 未に戻したらウェルダン、スタッフ情報、待ち時間を削除
               const st = loadBoardV3();
               if (st[groupId][roomId].welldone) {
                 delete st[groupId][roomId].welldone[colIdx];
@@ -697,6 +980,10 @@
               if (st[groupId][roomId].staff) {
                 delete st[groupId][roomId].staff[colIdx];
               }
+              if (st[groupId][roomId].waitTime) {
+                delete st[groupId][roomId].waitTime[colIdx];
+              }
+              saveBoardV3(st);
               if (welldoneDisplay) {
                 welldoneDisplay.textContent = '';
                 welldoneDisplay.style.display = 'none';
@@ -714,12 +1001,71 @@
           if (!timeLine) {
             timeLine = document.createElement('div');
             timeLine.className = 'js-time';
-            timeLine.style.fontSize = '10px';
-            timeLine.style.color = '#999';
-            timeLine.style.marginTop = '2px';
             cellEl.appendChild(timeLine);
           }
-          timeLine.textContent = hhmm(new Date());
+          
+          // 保存された待ち時間を確認
+          const savedWaitTime = curSt[groupId]?.[roomId]?.waitTime?.[colIdx];
+          
+          // 待の状態の場合、保存された待ち時間を表示
+          if (next === '待' && savedWaitTime) {
+            const displayTime = calculateWaitTime(savedWaitTime);
+            timeLine.textContent = displayTime;
+            timeLine.style.fontSize = '16px';
+            timeLine.style.color = '#d32f2f';
+            timeLine.style.fontWeight = 'bold';
+            timeLine.style.marginTop = '4px';
+            timeLine.style.cursor = 'pointer';
+            
+            // クリックで再選択できるようにする
+            timeLine.onclick = (e) => {
+              e.stopPropagation();
+              showWaitTimePopup(groupId, roomId, colIdx, (minutes) => {
+                if (minutes !== null) {
+                  const st = loadBoardV3();
+                  if (!st[groupId][roomId].waitTime) st[groupId][roomId].waitTime = {};
+                  st[groupId][roomId].waitTime[colIdx] = minutes;
+                  saveBoardV3(st);
+                  
+                  const displayTime = calculateWaitTime(minutes);
+                  timeLine.textContent = displayTime;
+                }
+              });
+            };
+          } else if (next === '待') {
+            // 待ち時間が保存されていない場合は現在時刻を表示
+            timeLine.textContent = hhmm(new Date());
+            timeLine.style.fontSize = '16px';
+            timeLine.style.color = '#d32f2f';
+            timeLine.style.fontWeight = 'bold';
+            timeLine.style.marginTop = '4px';
+            timeLine.style.cursor = 'pointer';
+            
+            // クリックで再選択できるようにする
+            timeLine.onclick = (e) => {
+              e.stopPropagation();
+              showWaitTimePopup(groupId, roomId, colIdx, (minutes) => {
+                if (minutes !== null) {
+                  const st = loadBoardV3();
+                  if (!st[groupId][roomId].waitTime) st[groupId][roomId].waitTime = {};
+                  st[groupId][roomId].waitTime[colIdx] = minutes;
+                  saveBoardV3(st);
+                  
+                  const displayTime = calculateWaitTime(minutes);
+                  timeLine.textContent = displayTime;
+                }
+              });
+            };
+          } else {
+            // 待以外の状態では通常の時刻表示
+            timeLine.textContent = hhmm(new Date());
+            timeLine.style.fontSize = '10px';
+            timeLine.style.color = '#999';
+            timeLine.style.fontWeight = 'normal';
+            timeLine.style.marginTop = '2px';
+            timeLine.style.cursor = 'default';
+            timeLine.onclick = null;
+          }
 
           curSt[groupId][roomId][colIdx] = next;
           saveBoardV3(curSt);
@@ -1058,7 +1404,7 @@
     const resetBtn = document.getElementById("btn-reset-today");
     if(resetBtn){
       resetBtn.addEventListener("click", () => {
-        if (!confirm("本日の丸ボタンの状態をすべて『未』に戻します。\nウェルダンとスタッフ情報も削除されます。よろしいですか？")) return;
+        if (!confirm("本日のデータをすべて初期化します。\n・丸ボタンの状態\n・ウェルダン情報\n・スタッフ情報\n・スピード設定\n・メモ欄\nすべてリセットされます。よろしいですか？")) return;
 
         // 状態をリセット
         const state = resetBoardStatesToPendingV3();
@@ -1066,6 +1412,20 @@
         // 古い形式のデータも削除
         localStorage.removeItem("dinner.board.v2");
         localStorage.removeItem(`board-state.v1:${new Date().toISOString().slice(0,10)}`);
+        
+        // スピード設定とメモ欄を初期化
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          // speed-で始まるキー、またはmemo-で始まるキーを削除対象にする
+          if (key && (key.startsWith('speed-') || key.startsWith('memo-'))) {
+            keysToRemove.push(key);
+          }
+        }
+        // 削除実行
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+        
+        console.log(`🧹 初期化完了: ${keysToRemove.length}個のスピード・メモ設定を削除しました`);
 
         // 画面を再描画
         const currentData = loadSettings();
@@ -1078,7 +1438,7 @@
         // キッチン表示も更新
         setTimeout(updateKitchenDisplay, 100);
         
-        alert('リセットしました！\n・すべての丸ボタンが「未」になりました\n・ウェルダン情報が削除されました\n・スタッフ情報が削除されました');
+        alert('リセットしました！\n・すべての丸ボタンが「未」になりました\n・ウェルダン情報が削除されました\n・スタッフ情報が削除されました\n・スピード設定が初期化されました（全てN）\n・メモ欄が空になりました');
       });
     }
   });

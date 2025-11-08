@@ -27,6 +27,11 @@
         <button id="tab-input" aria-selected="true">オーダー入力</button>
         <button id="tab-kitchen">キッチン表示</button>
       </nav>
+      
+      <!-- 本日データを初期化ボタン（右端に配置） -->
+      <button id="btn-reset-today" style="margin-left:auto;padding:8px 14px;border:1px solid #f44336;border-radius:8px;background:#fff;color:#f44336;font-size:13px;cursor:pointer;transition:all 0.2s;white-space:nowrap;">
+        本日データを初期化
+      </button>
     </div>
 
     <!-- 入力画面：ここに進行ボードを出す -->
@@ -34,9 +39,6 @@
 
       <!-- ここが見えている（見出しのすぐ下） -->
       <div id="boards"><!-- JSで18:00/18:30/19:00を描画 --></div>
-      <div class="row">
-        <button id="btn-reset-today">本日データを初期化</button>
-      </div>
       <!-- ここまで -->
 
     </section>
