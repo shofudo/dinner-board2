@@ -77,6 +77,92 @@
   border-radius: 8px;
 }
 
+/* 追加料理設定用 */
+.extra-dish-item {
+  display: grid;
+  grid-template-columns: 2fr 2fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  margin-bottom: 12px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+.extra-dish-item input[type="text"],
+.extra-dish-item select {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.remove-extra-dish-btn {
+  padding: 6px 12px;
+  background: #f44336;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.remove-extra-dish-btn:hover {
+  background: #d32f2f;
+}
+
+/* 追加料理のチェックボックスリスト */
+.extra-dish-rooms {
+  margin-top: 12px;
+  padding: 12px;
+  background: #f9f9f9;
+  border-radius: 4px;
+}
+
+.extra-dish-rooms h4 {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: #666;
+}
+
+.room-checkboxes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.room-checkboxes label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.room-checkboxes label:hover {
+  background: #e3f2fd;
+  border-color: #1e88e5;
+}
+
+.room-checkboxes input[type="checkbox"]:checked + span {
+  font-weight: bold;
+  color: #1976d2;
+}
+
+/* アレルギー設定用 */
+.allergy-advanced {
+  margin-top: 16px;
+  padding: 16px;
+  background: #fff9f0;
+  border: 2px solid #ffe0b2;
+  border-radius: 8px;
+}
+
 .allergy-list {
   margin-top: 12px;
 }
@@ -211,6 +297,18 @@
 
   <main>
     
+<!-- 追加料理設定セクション -->
+<section class="section">
+  <h2>追加料理の設定</h2>
+  <div class="muted">各部屋に追加する料理を設定できます（最大3品まで）</div>
+  
+  <div class="extra-dishes-section" style="margin-top:16px;padding:16px;background:#f0f8ff;border:2px solid #b3d9ff;border-radius:8px;">
+    <h3 style="margin:0 0 12px 0;font-size:15px;">追加料理リスト</h3>
+    <div id="extra-dishes-list"></div>
+    <button class="btn primary" id="add-extra-dish-btn" style="margin-top:12px;">+ 追加料理を設定</button>
+  </div>
+</section>
+
 <!-- スタッフ設定セクション -->
 <section class="section">
   <h2>出勤スタッフの設定</h2>
@@ -329,6 +427,144 @@
  <script>
 document.addEventListener('DOMContentLoaded', () => {
   // 固定の10部屋
+  // === 追加料理管理 ===
+  const DISH_POSITIONS = [
+    "果菜盛の前",
+    "蒸物の前", 
+    "揚物の前",
+    "煮物の前",
+    "御飯の前",
+    "甘味の前"
+  ];
+
+  let extraDishes = loadExtraDishes();
+
+  function loadExtraDishes() {
+    try {
+      const raw = localStorage.getItem('extra-dishes.v1');
+      return raw ? JSON.parse(raw) : [];
+    } catch(e) {
+      return [];
+    }
+  }
+
+  function saveExtraDishes() {
+    localStorage.setItem('extra-dishes.v1', JSON.stringify(extraDishes));
+  }
+
+  function renderExtraDishItem(dish, index) {
+    const item = document.createElement('div');
+    item.className = 'extra-dish-item';
+    
+    const roomOptions = ["やまぶき","なでしこ","つばき","やしお","さくら","ふじ","さつき","きすげ","ゆり","はぎ"].map(room => {
+      const checked = dish.rooms && dish.rooms.includes(room) ? 'checked' : '';
+      return `
+        <label>
+          <input type="checkbox" value="${room}" ${checked}>
+          <span>${room}</span>
+        </label>
+      `;
+    }).join('');
+    
+    item.innerHTML = `
+      <div>
+        <label style="display:block;margin-bottom:4px;font-size:12px;color:#666;">料理名</label>
+        <input type="text" class="dish-name" value="${dish.name || ''}" placeholder="例: 特選刺身">
+      </div>
+      <div>
+        <label style="display:block;margin-bottom:4px;font-size:12px;color:#666;">挿入位置</label>
+        <select class="dish-position">
+          ${DISH_POSITIONS.map(pos => `
+            <option value="${pos}" ${dish.position === pos ? 'selected' : ''}>${pos}</option>
+          `).join('')}
+        </select>
+      </div>
+      <div>
+        <button class="remove-extra-dish-btn" data-index="${index}">削除</button>
+      </div>
+      <div style="grid-column: 1 / -1;" class="extra-dish-rooms">
+        <h4>この料理を表示する部屋を選択:</h4>
+        <div class="room-checkboxes">
+          ${roomOptions}
+        </div>
+      </div>
+    `;
+    
+    return item;
+  }
+
+  function refreshExtraDishList() {
+    const list = document.getElementById('extra-dishes-list');
+    if (!list) return;
+    
+    list.innerHTML = '';
+    
+    if (extraDishes.length === 0) {
+      list.innerHTML = '<div style="color:#999;font-size:13px;text-align:center;padding:20px;">追加料理が設定されていません</div>';
+      return;
+    }
+    
+    extraDishes.forEach((dish, index) => {
+      list.appendChild(renderExtraDishItem(dish, index));
+    });
+    
+    // 入力変更イベント
+    list.querySelectorAll('.dish-name').forEach((input, idx) => {
+      input.addEventListener('input', (e) => {
+        extraDishes[idx].name = e.target.value;
+        saveExtraDishes();
+      });
+    });
+    
+    list.querySelectorAll('.dish-position').forEach((select, idx) => {
+      select.addEventListener('change', (e) => {
+        extraDishes[idx].position = e.target.value;
+        saveExtraDishes();
+      });
+    });
+    
+    // 部屋選択チェックボックス
+    list.querySelectorAll('.room-checkboxes').forEach((container, idx) => {
+      container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        cb.addEventListener('change', () => {
+          const checked = Array.from(container.querySelectorAll('input:checked')).map(c => c.value);
+          extraDishes[idx].rooms = checked;
+          saveExtraDishes();
+        });
+      });
+    });
+    
+    // 削除ボタン
+    list.querySelectorAll('.remove-extra-dish-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const index = parseInt(btn.dataset.index);
+        if (confirm('この追加料理を削除しますか?')) {
+          extraDishes.splice(index, 1);
+          saveExtraDishes();
+          refreshExtraDishList();
+        }
+      });
+    });
+  }
+
+  // 追加ボタン
+  document.getElementById('add-extra-dish-btn')?.addEventListener('click', () => {
+    if (extraDishes.length >= 3) {
+      alert('追加料理は最大3つまでです');
+      return;
+    }
+    extraDishes.push({
+      name: '',
+      position: DISH_POSITIONS[0],
+      rooms: []
+    });
+    saveExtraDishes();
+    refreshExtraDishList();
+  });
+
+  refreshExtraDishList();
+
+  // === 部屋とプランの定数 ===
   const ROOMS = [
     "やまぶき","なでしこ","つばき","やしお","さくら",
     "ふじ","さつき","きすげ","ゆり","はぎ"

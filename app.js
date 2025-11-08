@@ -1,5 +1,78 @@
-// まとまり開始（IIFE）
+// まとまり開始(IIFE)
 (() => {
+  // バージョン確認用(キャッシュ問題のデバッグ)
+  const APP_VERSION = '2024-11-08-v3';
+  console.log(`🎯 app.jsバージョン: ${APP_VERSION}`);
+  console.log('📅 読み込み時刻:', new Date().toLocaleString('ja-JP'));
+  
+  // === 料理名の読み仮名マップ ===
+  const DISH_READINGS = {
+    "吸物": "すいもの",
+    "すいもの": "すいもの",
+    "刺身": "さしみ",
+    "さしみ": "さしみ",
+    "蒸物": "むしもの",
+    "むしもの": "むしもの",
+    "揚物": "あげもの",
+    "あげもの": "あげもの",
+    "煮物": "にもの",
+    "にもの": "にもの",
+    "飯": "めし・ごはん",
+    "ご飯": "ごはん",
+    "甘味": "あまみ・デザート",
+    "デザート": "デザート",
+    "果菜盛": "かなもり",
+    "かなもり": "かなもり",
+    "しゃぶしゃぶ": "しゃぶしゃぶ",
+    "ステーキ": "ステーキ",
+    "単品ステーキ": "たんぴんステーキ"
+  };
+
+  // === 追加料理を挿入する関数 ===
+  function insertExtraDishes(baseDishes, extraDishes, roomName) {
+    if (!extraDishes || !Array.isArray(extraDishes) || extraDishes.length === 0) {
+      return baseDishes;
+    }
+    
+    const result = [...baseDishes];
+    const positionMapping = {
+      "果菜盛の前": "果菜盛",
+      "蒸物の前": "蒸物",
+      "揚物の前": "揚物", 
+      "煮物の前": "煮物",
+      "御飯の前": "ご飯",
+      "甘味の前": "甘味"
+    };
+    
+    // 追加料理を逆順で処理（後ろから挿入すると位置がずれない）
+    for (let i = extraDishes.length - 1; i >= 0; i--) {
+      const dish = extraDishes[i];
+      
+      // この部屋に表示する追加料理かチェック
+      if (!dish.rooms || !dish.rooms.includes(roomName)) {
+        continue;
+      }
+      
+      if (!dish.name || !dish.position) {
+        continue;
+      }
+      
+      // 挿入位置を特定
+      const targetDish = positionMapping[dish.position];
+      const insertIndex = result.findIndex(d => d === targetDish);
+      
+      if (insertIndex !== -1) {
+        // 指定位置の前に挿入
+        result.splice(insertIndex, 0, dish.name);
+      }
+    }
+    
+    return result;
+  }
+  
+  // グローバルに公開
+  window.insertExtraDishes = insertExtraDishes;
+  
   // タブ切替（シンプル）
   const tabInput = document.getElementById("tab-input");
   const tabKitchen = document.getElementById("tab-kitchen");
@@ -68,8 +141,17 @@
     // すべての状態を「未」にリセット
     for(const gid in state){
       for(const rid in state[gid]){
+        // 各料理の状態を「未」に戻す
         for(let i=0; i<DISH_KEYS.length; i++){
           state[gid][rid][i] = "未";
+        }
+        // ウェルダン情報を削除
+        if (state[gid][rid].welldone) {
+          delete state[gid][rid].welldone;
+        }
+        // スタッフ情報を削除
+        if (state[gid][rid].staff) {
+          delete state[gid][rid].staff;
         }
       }
     }
@@ -319,8 +401,24 @@
   }
 
   function renderFromSettings(data){
+    // 追加料理データを読み込む
+    let extraDishes = [];
+    try {
+      const raw = localStorage.getItem('extra-dishes.v1');
+      if (raw) {
+        extraDishes = JSON.parse(raw);
+      }
+    } catch(e) {
+      console.error('追加料理の読み込みに失敗:', e);
+    }
+    
+    // データに追加料理を含める
+    data.extraDishes = extraDishes;
+    
     const byTime = { "18:00":[], "18:30":[], "19:00":[] };
     for(const r of data.rooms){
+      // startTimeプロパティを追加(dinnerと同じ値)
+      r.startTime = r.dinner;
       if(byTime[r.dinner]) byTime[r.dinner].push(r);
     }
 
@@ -356,10 +454,6 @@
         <div class="time-group" style="border-bottom: ${isLast ? 'none' : '2px solid #e0e0e0'}; padding-bottom: 16px; margin-bottom: ${isLast ? '0' : '16px'};">
           <h2 class="time-group-header" style="margin:8px 0 12px 0; font-size:14px; color:#999; font-weight:normal;">${time}</h2>
           <div class="table like">
-            <div class="row-head" style="display:grid;grid-template-columns:240px repeat(7,1fr);gap:8px;padding:8px;border-bottom:1px solid #eee;font-size:12px;color:#666;">
-              <div>部屋 / スピード</div>
-              <div>吸物</div><div>刺身</div><div>蒸物</div><div>揚物</div><div>煮物</div><div>飯</div><div>甘味</div>
-            </div>
             ${list.map(r=>{
               const planBg = planColors[r.plan] || '#f5f5f5';
               const tagColor = planTagColors[r.plan] || { bg: '#757575', color: '#fff' };
@@ -371,7 +465,16 @@
               const planTag = r.plan ? `<span class="plan-tag" style="display:inline-block; font-size:13px; padding:3px 10px; margin-right:6px; background:${tagColor.bg}; color:${tagColor.color}; border-radius:4px;">${esc(r.plan)}</span>` : "";
 
               // プランごとの料理名を取得
-              const dishNames = r.plan && planDishNames[r.plan] ? planDishNames[r.plan] : ["吸物","刺身","蒸物","揚物","煮物","飯","甘味"];
+              const baseDishes = r.plan && planDishNames[r.plan] ? planDishNames[r.plan] : ["吸物","刺身","蒸物","揚物","煮物","飯","甘味"];
+              
+              // 追加料理を挿入
+              const dishNames = insertExtraDishes(baseDishes, data.extraDishes, r.name);
+              
+              // 部屋データにdishNamesを保存(キッチン表示で使用)
+              r.dishNames = dishNames;
+              
+              // どの料理が追加料理かを判定するためのセット
+              const extraDishNames = new Set(data.extraDishes?.map(d => d.name) || []);
 
               // ケーキ・プレート表示
               let sweetTag = '';
@@ -382,8 +485,11 @@
               // 食事スピードセレクター
               const speedSelector = `<div class="speed-wrap" style="margin-top:6px;"></div>`;
 
+              // グリッド列数を動的に調整（240px + 料理数×1fr）
+              const gridColumns = `240px repeat(${dishNames.length},1fr)`;
+
               return `
-                <div class="room-row" data-plan="${esc(r.plan||'')}" style="display:grid;grid-template-columns:240px repeat(7,1fr);gap:8px;align-items:center;padding:12px 10px;border-bottom:1px dashed #eee;background:${planBg};">
+                <div class="room-row" data-plan="${esc(r.plan||'')}" style="display:grid;grid-template-columns:${gridColumns};gap:8px;align-items:center;padding:12px 10px;border-bottom:1px dashed #eee;background:${planBg};">
                   <div>
                     <div style="margin-bottom:8px;">
                       ${guestTag}${planTag}
@@ -393,6 +499,7 @@
                   </div>
                   ${dishNames.map((dishName, idx) => {
                     const dishKey = dishName;
+                    const isExtraDish = extraDishNames.has(dishName);
                     
                     // この料理に該当するアレルギーを収集
                     let allergyNotes = [];
@@ -425,14 +532,17 @@
                       ? `<div class="allergy-display" style="font-size:10px;margin-top:2px;color:#d32f2f;font-weight:bold;">${allergyNotes.join('・')}NG</div>`
                       : '';
                     
+                    // 追加料理は四角ボタン、通常料理は丸ボタン
+                    const buttonClass = isExtraDish ? 'squarebtn' : 'dotbtn';
+                    
                     return `
-                      <div class="cell" data-group="${time}" data-room="${esc(r.name)}" data-col="${idx}" data-dish="${esc(dishKey)}" style="text-align:center;">
+                      <div class="cell" data-group="${time}" data-room="${esc(r.name)}" data-col="${idx}" data-dish="${esc(dishKey)}" data-extra="${isExtraDish}" style="text-align:center;">
                         <div class="dishname" style="font-size:11px;min-height:18px;margin-bottom:4px;color:#666;">${dishName}</div>
-                        <button class="dotbtn"></button>
+                        <button class="${buttonClass}"></button>
                         ${allergyDisplay}
                         <div class="welldone-display" style="font-size:10px;margin-top:2px;color:#d32f2f;display:none;"></div>
                         <div class="staff-display" style="font-size:10px;margin-top:2px;color:#1976d2;display:none;"></div>
-                        ${idx === 6 ? sweetTag : ""}
+                        ${idx === dishNames.length - 1 && dishName === '甘味' ? sweetTag : ""}
                       </div>
                     `;
                   }).join("")}
@@ -464,10 +574,12 @@
         }
       });
 
-      // ◯ボタンの状態復元＋クリック保存
+      // ◯ボタンと□ボタンの状態復元＋クリック保存
       const st = loadBoardV3() || {};
       root.querySelectorAll('.cell').forEach(cell => {
-        const btn = cell.querySelector('.dotbtn');
+        const btn = cell.querySelector('.dotbtn, .squarebtn');
+        if (!btn) return; // ボタンがない場合はスキップ
+        
         const welldoneDisplay = cell.querySelector('.welldone-display');
         const staffDisplay = cell.querySelector('.staff-display');
         const groupId = cell.dataset.group;
@@ -615,6 +727,11 @@
           // ボタン内の文字を更新
           btn.textContent = next;
           btn.setAttribute('data-state', next);
+          
+          // キッチン表示を更新
+          if (typeof window.updateKitchenDisplay === 'function') {
+            window.updateKitchenDisplay();
+          }
         });
       });
     }
@@ -626,6 +743,209 @@
     return;
   }
 
+  // === キッチン表示の更新機能 ===
+  function updateKitchenDisplay() {
+    console.log('🍳 キッチン表示を更新中...');
+    
+    // 料理名の読み仮名マップ(ここで定義)
+    const DISH_READINGS = {
+      "吸物": "すいもの",
+      "すいもの": "すいもの",
+      "刺身": "さしみ",
+      "さしみ": "さしみ",
+      "蒸物": "むしもの",
+      "むしもの": "むしもの",
+      "揚物": "あげもの",
+      "あげもの": "あげもの",
+      "煮物": "にもの",
+      "にもの": "にもの",
+      "飯": "めし・ごはん",
+      "ご飯": "ごはん",
+      "甘味": "あまみ・デザート",
+      "デザート": "デザート",
+      "果菜盛": "かなもり",
+      "かなもり": "かなもり",
+      "しゃぶしゃぶ": "しゃぶしゃぶ",
+      "ステーキ": "ステーキ",
+      "すき焼き": "すきやき",
+      "単品ステーキ": "たんぴんステーキ",
+      "フライ": "フライ",
+      "茶碗蒸し": "ちゃわんむし",
+      "牛たたき": "ぎゅうたたき",
+      "焼物": "やきもの",
+      "小鉢": "こばち"
+    };
+    
+    const kitchenDisplay = document.getElementById('kitchen-display');
+    if (!kitchenDisplay) {
+      console.log('❌ kitchen-display要素が見つかりません');
+      return;
+    }
+
+    // 現在の進行状態を取得
+    const state = loadBoardV3();
+    const settings = loadSettings();
+    
+    console.log('📊 現在の状態:', state);
+    console.log('⚙️ 設定データ:', settings);
+
+    if (!settings || !settings.rooms) {
+      kitchenDisplay.innerHTML = '<div class="kitchen-no-orders">設定データがありません</div>';
+      console.log('❌ 設定データがありません');
+      return;
+    }
+
+    // プランごとの料理名マッピング
+    const planDishNames = {
+      'スタンダード': ["吸物", "果菜盛", "蒸物", "揚物", "煮物", "ご飯", "甘味"],
+      '和牛懐石': ["吸物", "果菜盛", "すき焼き", "フライ", "ステーキ", "ご飯", "甘味"],
+      'ステーキ': ["吸物", "果菜盛", "蒸物", "揚物", "ステーキ", "ご飯", "甘味"],
+      'しゃぶしゃぶ': ["吸物", "果菜盛", "しゃぶしゃぶ", "蒸物", "揚物", "ご飯", "甘味"],
+      '連泊': ["茶碗蒸し", "牛たたき", "焼物", "小鉢", "揚物", "ご飯", "甘味"]
+    };
+
+    // 追加料理データを読み込む
+    let extraDishes = [];
+    try {
+      const raw = localStorage.getItem('extra-dishes.v1');
+      if (raw) {
+        extraDishes = JSON.parse(raw);
+      }
+    } catch(e) {
+      console.error('追加料理の読み込みに失敗:', e);
+    }
+
+    // 各部屋にstartTimeとdishNamesを追加
+    settings.rooms.forEach(room => {
+      room.startTime = room.dinner;  // 18:00, 18:30, 19:00など
+      
+      // プランごとの料理名を取得
+      const baseDishes = room.plan && planDishNames[room.plan] 
+        ? planDishNames[room.plan] 
+        : ["吸物","刺身","蒸物","揚物","煮物","飯","甘味"];
+      
+      // 追加料理を挿入
+      room.dishNames = insertExtraDishes(baseDishes, extraDishes, room.name);
+      
+      console.log(`✅ ${room.name}のデータを準備: startTime=${room.startTime}, 料理数=${room.dishNames.length}`);
+    });
+
+    // 料理ごとに集計
+    const dishAggregation = {};
+
+    settings.rooms.forEach(room => {
+      const groupId = room.startTime;
+      const roomId = room.name;
+
+      if (!state[groupId] || !state[groupId][roomId]) {
+        console.log(`⚠️ ${roomId}(${groupId})のデータがありません`);
+        return;
+      }
+
+      const roomState = state[groupId][roomId];
+      const welldoneData = roomState.welldone || {};
+
+      // 各料理の状態をチェック
+      room.dishNames.forEach((dishName, idx) => {
+        const dishState = roomState[idx];
+        
+        console.log(`📝 ${roomId} - ${dishName}: ${dishState}`);
+        
+        // 「待」「注」の状態のみ表示
+        if (dishState !== '待' && dishState !== '注') return;
+
+        const key = dishName;
+        if (!dishAggregation[key]) {
+          dishAggregation[key] = {
+            name: dishName,
+            reading: DISH_READINGS[dishName] || dishName,
+            count: 0,
+            rooms: [],
+            state: dishState,
+            welldoneCount: 0
+          };
+        }
+
+        dishAggregation[key].count += 1;
+        
+        // ウェルダン情報を追加
+        if (welldoneData[idx]) {
+          dishAggregation[key].welldoneCount += welldoneData[idx];
+        }
+
+        // より進んだ状態を優先（注 > 待）
+        if (dishState === '注' && dishAggregation[key].state === '待') {
+          dishAggregation[key].state = '注';
+        }
+
+        dishAggregation[key].rooms.push({
+          name: roomId,
+          guest: room.guest || 2,
+          welldone: welldoneData[idx] || 0
+        });
+      });
+    });
+
+    // 料理カードを生成
+    const dishCards = Object.values(dishAggregation);
+    
+    console.log('🍽️ 集計された料理:', dishCards);
+    console.log('📊 集計された料理の数:', dishCards.length);
+    
+    if (dishCards.length > 0) {
+      dishCards.forEach(dish => {
+        console.log(`  - ${dish.name}(${dish.reading}): ${dish.count}食, 状態=${dish.state}`);
+      });
+    }
+
+    if (dishCards.length === 0) {
+      kitchenDisplay.innerHTML = '<div class="kitchen-no-orders">現在、待機中・調理中の料理はありません</div>';
+      console.log('✅ 待機中・調理中の料理はありません');
+      return;
+    }
+
+    // 状態の優先順位: 注 > 待
+    dishCards.sort((a, b) => {
+      const stateOrder = { '注': 0, '待': 1 };
+      return stateOrder[a.state] - stateOrder[b.state];
+    });
+
+    const cardsHtml = dishCards.map(dish => {
+      const stateClass = dish.state === '注' ? 'state-cooking' : 'state-waiting';
+      const stateLabel = dish.state === '注' ? '🔥 調理中' : '⏳ 待機中';
+
+      const roomsHtml = dish.rooms.map(r => {
+        const welldoneText = r.welldone > 0 ? ` (W×${r.welldone})` : '';
+        return `<span class="kitchen-room-badge">${r.name} ${r.guest}名${welldoneText}</span>`;
+      }).join('');
+
+      const welldoneSection = dish.welldoneCount > 0 
+        ? `<div class="kitchen-welldone-info">🥩 ウェルダン: ${dish.welldoneCount}名</div>`
+        : '';
+
+      return `
+        <div class="kitchen-dish-card ${stateClass}">
+          <div class="kitchen-dish-name">${dish.name}</div>
+          <div class="kitchen-dish-reading">${dish.reading}</div>
+          <div class="kitchen-dish-count">${dish.count}食</div>
+          ${welldoneSection}
+          <div style="text-align:center;margin:12px 0;font-size:18px;font-weight:bold;color:#555;">
+            ${stateLabel}
+          </div>
+          <div class="kitchen-dish-rooms">
+            ${roomsHtml}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    kitchenDisplay.innerHTML = cardsHtml;
+    console.log('✅ キッチン表示を更新しました!');
+  }
+
+  // グローバルに公開
+  window.updateKitchenDisplay = updateKitchenDisplay;
+
   // 初期実行
   document.addEventListener('DOMContentLoaded', () => {
     const data = loadSettings();
@@ -635,11 +955,29 @@
       renderBoardV3();
     }
 
+    // タブ切り替え時にキッチン表示を更新
+    const tabKitchen = document.getElementById('tab-kitchen');
+    if (tabKitchen) {
+      tabKitchen.addEventListener('click', () => {
+        setTimeout(updateKitchenDisplay, 100);
+      });
+    }
+
+    // 初回表示
+    updateKitchenDisplay();
+
+    // ボタンクリック時もキッチン表示を更新（リアルタイム反映）
+    document.addEventListener('click', (e) => {
+      if (e.target.classList.contains('dotbtn') || e.target.classList.contains('squarebtn')) {
+        setTimeout(updateKitchenDisplay, 300);
+      }
+    });
+
     // === リセットボタン（改善版） ===
     const resetBtn = document.getElementById("btn-reset-today");
     if(resetBtn){
       resetBtn.addEventListener("click", () => {
-        if (!confirm("本日の丸ボタンの状態をすべて『未』に戻します。よろしいですか？")) return;
+        if (!confirm("本日の丸ボタンの状態をすべて『未』に戻します。\nウェルダンとスタッフ情報も削除されます。よろしいですか？")) return;
 
         // 状態をリセット
         const state = resetBoardStatesToPendingV3();
@@ -652,11 +990,14 @@
         const currentData = loadSettings();
         if (currentData) {
           renderFromSettings(currentData);
-          alert('リセットしました！すべての丸ボタンが「未」になりました。');
         } else {
           renderBoardV3(state);
-          alert('リセットしました！すべての丸ボタンが「未」になりました。');
         }
+        
+        // キッチン表示も更新
+        setTimeout(updateKitchenDisplay, 100);
+        
+        alert('リセットしました！\n・すべての丸ボタンが「未」になりました\n・ウェルダン情報が削除されました\n・スタッフ情報が削除されました');
       });
     }
   });

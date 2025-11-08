@@ -7,21 +7,27 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <p style="margin:16px 0;">
-  <a href="./settings.html" style="display:inline-block;padding:10px 14px;border:1px solid #ccc;border-radius:10px;text-decoration:none;">
-    本日の設定ページへ
-  </a>
-</p>
-
-    <!-- タブ -->
-    <nav class="tabs">
-      <button id="tab-input" aria-selected="true">オーダー入力</button>
-      <button id="tab-kitchen">キッチン表示</button>
-    </nav>
+    <!-- ▼ 全て横一列におしゃれに配置 -->
+    <div style="display:flex;align-items:center;gap:20px;padding:16px 0;border-bottom:2px solid #e0e0e0;margin-bottom:16px;">
+      <!-- 設定ページへのリンク（小さいボタン） -->
+      <a href="./settings.html" style="display:inline-flex;align-items:center;padding:8px 14px;border:1px solid #ccc;border-radius:8px;text-decoration:none;font-size:13px;color:#666;background:#fff;transition:all 0.2s;white-space:nowrap;">
+        ⚙️ 本日の設定
+      </a>
+      
+      <!-- タイトル（おしゃれに） -->
+      <h1 style="margin:0;font-size:24px;font-weight:700;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;flex-shrink:0;">
+        🍽️ 夕食進行ボード
+      </h1>
+      
+      <!-- タブ -->
+      <nav class="tabs" style="margin:0;">
+        <button id="tab-input" aria-selected="true">オーダー入力</button>
+        <button id="tab-kitchen">キッチン表示</button>
+      </nav>
+    </div>
 
     <!-- 入力画面：ここに進行ボードを出す -->
     <section id="view-input" class="view is-active">
-      <h1>夕食進行ボード</h1>
 
       <!-- ここが見えている（見出しのすぐ下） -->
       <div id="boards"><!-- JSで18:00/18:30/19:00を描画 --></div>
@@ -32,10 +38,12 @@
 
     </section>
 
-    <!-- キッチン側（今日は表示だけ） -->
+    <!-- キッチン側(料理の集計表示) -->
     <section id="view-kitchen" class="view">
-      <h1>キッチン表示</h1>
-      <p>※まずは入力画面の進行ボードを完成させます。</p>
+      <h1 style="font-size:28px;margin-bottom:20px;text-align:center;">🍳 キッチン表示</h1>
+      <div id="kitchen-display">
+        <!-- ここに料理の集計が表示されます -->
+      </div>
     </section>
 
     <script src="app.js"></script>
