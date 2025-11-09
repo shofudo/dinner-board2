@@ -74,28 +74,43 @@
   window.insertExtraDishes = insertExtraDishes;
   
   // タブ切替（シンプル）
-  const tabInput = document.getElementById("tab-input");
-  const tabKitchen = document.getElementById("tab-kitchen");
-  const viewInput = document.getElementById("view-input");
-  const viewKitchen = document.getElementById("view-kitchen");
-  
-  function show(view) {
-    document.querySelectorAll(".view").forEach(v => v.classList.remove("is-active"));
-    view.classList.add("is-active");
-  }
-  
-  if (tabInput && tabKitchen) {
-    tabInput.addEventListener("click", () => { 
-      tabInput.setAttribute("aria-selected","true"); 
-      tabKitchen.removeAttribute("aria-selected"); 
-      show(viewInput); 
-    });
-    tabKitchen.addEventListener("click", () => { 
-      tabKitchen.setAttribute("aria-selected","true"); 
-      tabInput.removeAttribute("aria-selected"); 
-      show(viewKitchen); 
-    });
-  }
+// 👇 この新しいコードに置き換え
+// タブ切替 (シンプル)
+const tabInput = document.getElementById("tab-input");
+const tabKitchen = document.getElementById("tab-kitchen");
+const viewInput = document.getElementById("view-input");
+const viewKitchen = document.getElementById("view-kitchen");
+
+function show(view) {
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("is-active"));
+  view.classList.add("is-active");
+}
+
+// タブボタンが存在する場合のみイベントリスナーを設定
+if (tabInput && tabKitchen) {
+  tabInput.addEventListener("click", () => {
+    tabInput.setAttribute("aria-selected", "true");
+    tabKitchen.removeAttribute("aria-selected");
+    show(viewInput);
+  });
+
+  tabKitchen.addEventListener("click", () => {
+    tabKitchen.setAttribute("aria-selected", "true");
+    tabInput.removeAttribute("aria-selected");
+    show(viewKitchen);
+  });
+}
+
+// kitchen.htmlの場合は自動的にキッチン表示を表示
+if (!tabInput && !tabKitchen && viewKitchen) {
+  show(viewKitchen);
+  // キッチン表示をレンダリング
+  setTimeout(() => {
+    if (window.renderKitchenDisplay) {
+      window.renderKitchenDisplay();
+    }
+  }, 100);
+}
 
   // === 時刻ユーティリティ ===
   function pad2(n){ return String(n).padStart(2,'0'); }
@@ -112,18 +127,33 @@
   const KEY_BOARD = "dinner.board.v2";
   const KEY_BOARD_V3 = "dinner.board.v3";
 
-  function saveBoardV3(state){
-    localStorage.setItem(KEY_BOARD_V3, JSON.stringify(state));
-  }
+function saveBoardV3(state){
+  // ローカルにも残す（通信不良でも使えるように）
+  localStorage.setItem(KEY_BOARD_V3, JSON.stringify(state));
 
-  function loadBoardV3(){
-    try{
-      const raw = localStorage.getItem(KEY_BOARD_V3);
-      return raw ? JSON.parse(raw) : {};
-    }catch(e){
-      return {};
+  // Firebaseへも保存（3時間の寿命つき）
+  try{
+    const api = window.__db || {};
+    const { db, ref, set, serverTimestamp } = api;
+    if(db && ref && set){
+      const expiresAt = Date.now() + 3 * 60 * 60 * 1000; // 3時間後
+      const payload = { state, expiresAt, updatedAt: serverTimestamp() };
+      set(ref(db, 'boards/today'), payload);
     }
+  }catch(e){
+    console.warn('Firebase書き込みをスキップ:', e);
   }
+}
+
+function loadBoardV3(){
+  try{
+    const raw = localStorage.getItem(KEY_BOARD_V3);
+    return raw ? JSON.parse(raw) : {};
+  }catch(e){
+    return {};
+  }
+}
+
 
   function ensureStateV3(state, groupId, roomId, colIdx){
     if(!state[groupId]) state[groupId] = {};
@@ -276,8 +306,33 @@
 
   window.renderBoardV3 = renderBoardV3;
 
-  // 初期表示
-  renderBoardV3();
+// 初期表示（Firebaseがあればリアルタイム購読、なければローカル表示）
+(function subscribeBoardRealtime(){
+  const api = window.__db || {};
+  const { db, ref, onValue } = api;
+  if (db && ref && onValue){
+    onValue(ref(db, 'boards/today'), (snap)=>{
+      const data = snap.val();
+      const now = Date.now();
+      // 期限切れ or データ無し → 空で描画
+      let state = {};
+      if (data && (!data.expiresAt || data.expiresAt > now)){
+        state = data.state || {};
+        // 受信した状態はローカルにも反映（リロード耐性）
+        localStorage.setItem(KEY_BOARD_V3, JSON.stringify(state));
+      }
+      renderBoardV3(state);
+    }, (err)=>{
+      console.warn('Firebase購読エラー:', err);
+      // 失敗時はローカル内容で描画
+      renderBoardV3(loadBoardV3());
+    });
+  }else{
+    // Firebase未初期化（オフライン等）→ ローカルで描画
+    renderBoardV3(loadBoardV3());
+  }
+})();
+
 
 })(); // まとまり終わり
 
