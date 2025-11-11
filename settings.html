@@ -290,6 +290,22 @@
 .note{font-size:12px;color:var(--muted);margin-top:6px}
   </style>
 </head>
+<!-- 🔧 SW & Cache killer (一時的) -->
+<script>
+(function() {
+  // 既存の Service Worker を全解除
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations()
+      .then(regs => regs.forEach(reg => reg.unregister()))
+      .catch(()=>{});
+  }
+  // Cache Storage も全削除
+  if (window.caches && caches.keys) {
+    caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+  }
+})();
+</script>
+
 <body>
   <header>
     <h1>本日の設定</h1>
@@ -821,8 +837,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (saveAndBoardBtn){
     saveAndBoardBtn.addEventListener('click', () => {
       saveSettings();
-      alert('保存しました!発注ボードへ移動します。');
-      location.href = './index.html?nocache=' + Date.now();
+alert('保存しました！発注ボードへ移動します。');
+location.replace('./order_sync13.html?v=sync13&nocache=' + Date.now());
     });
   }
 

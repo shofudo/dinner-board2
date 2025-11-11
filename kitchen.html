@@ -29,6 +29,22 @@
       }
     </style>
   </head>
+  <!-- 🔧 SW & Cache killer (一時的) -->
+<script>
+(function() {
+  // 既存の Service Worker を全解除
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations()
+      .then(regs => regs.forEach(reg => reg.unregister()))
+      .catch(()=>{});
+  }
+  // Cache Storage も全削除
+  if (window.caches && caches.keys) {
+    caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+  }
+})();
+</script>
+
   <body>
     <!-- シンプルなヘッダー -->
     <div class="kitchen-header">
@@ -40,34 +56,32 @@
       <!-- ここに料理の集計が表示されます -->
     </div>
 
-    <script src="app.js"></script>
-    <script type="module">
-      import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-      import { getDatabase, ref, onValue, set, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import { getDatabase, ref, onValue, set, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
-      const firebaseConfig = {
-        apiKey: "AIzaSyBArbWHqcazV8QGBHynPHQgqYyiAQn5mhw",
-        authDomain: "dinner-management-d3580.firebaseapp.com",
-        databaseURL: "https://dinner-management-d3580-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "dinner-management-d3580",
-        storageBucket: "dinner-management-d3580.firebasestorage.app",
-        messagingSenderId: "859809463635",
-        appId: "1:859809463635:web:f276930f7dc721a02ff5a6"
-      };
+const firebaseConfig = {
+  apiKey: "AIzaSyBArbWHqcazV8QGBHynPHQgqYyiAQn5mhw",
+  authDomain: "dinner-management-d3580.firebaseapp.com",
+  databaseURL: "https://dinner-management-d3580-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "dinner-management-d3580",
+  storageBucket: "dinner-management-d3580.firebasestorage.app",
+  messagingSenderId: "859809463635",
+  appId: "1:859809463635:web:f276930f7dc721a02ff5a6"
+};
 
-      const app = initializeApp(firebaseConfig);
-      const db  = getDatabase(app);
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
 
-      window.__db = { db, ref, onValue, set, serverTimestamp };
-      console.log('Firebase初期化OK(キッチン表示)');
-      
-      // キッチン表示を強制的に表示
-      document.addEventListener('DOMContentLoaded', function() {
-        // タブ切り替えの代わりに、直接キッチン表示を起動
-        if (window.renderKitchenDisplay) {
-          window.renderKitchenDisplay();
-        }
-      });
-    </script>
-  </body>
-</html>
+window.__db = { db, ref, onValue, set, serverTimestamp };
+// ★ Realtime購読：DBが変わったら即キッチン画面を再描画
+const boardRef = ref(db, 'dinner-board-v3');
+onValue(boardRef, (snap) => {
+  const state = snap.val() || {};
+  if (window.updateKitchenDisplay) window.updateKitchenDisplay(state);
+});
+
+console.log('Firebase初期化OK(キッチン表示)');
+</script>
+
+<script src="app.js?v=sync13"></script>
