@@ -118,6 +118,13 @@ button { cursor: pointer; }
   color: #999;
 }
 
+/* 肉:ピンク背景（肉料理の準備、ウェルダン待ち） */
+.dotbtn[data-state="肉"] {
+  background: #ff8a80;
+  border-color: #f44336;
+  color: #fff;
+}
+
 /* 待:黄色背景（準備完了、待機中） */
 .dotbtn[data-state="待"] {
   background: #ffd54f;
